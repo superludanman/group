@@ -1,0 +1,345 @@
+/* 
+ * 模板CSS - OpenAI风格的简约设计
+ * 包含左侧竖向进度导航和简约设计
+ */
+
+:root {
+  /* 颜色变量 */
+  --background-color: #ffffff;
+  --sidebar-background: #f7f7f8;
+  --primary-color: #10a37f;
+  --primary-hover: #0e906f;
+  --text-color: #353740;
+  --text-light: #6e6e80;
+  --border-color: #e5e5e5;
+  --sidebar-width: 260px;
+  --header-height: 60px;
+  --content-max-width: 1000px;
+  --shadow-light: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* 基础样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Söhne', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+/* 布局 */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* 侧边栏样式 */
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--sidebar-background);
+  position: fixed;
+  height: 100vh;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-header h1 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sidebar-content {
+  padding: 16px 0;
+}
+
+.progress-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-nav-item {
+  position: relative;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.progress-nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.progress-nav-item.active {
+  color: var(--primary-color);
+  background-color: rgba(16, 163, 127, 0.1);
+  font-weight: 500;
+}
+
+.progress-nav-item.completed {
+  color: var(--text-color);
+}
+
+.progress-nav-item .step-number {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 12px;
+  background-color: #e5e5e5;
+  color: var(--text-light);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.progress-nav-item.active .step-number {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.progress-nav-item.completed .step-number {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* 完成步骤的勾选图标 */
+.progress-nav-item.completed .step-number::after {
+  content: "✓";
+}
+
+.progress-nav-item.completed .step-number span {
+  display: none;
+}
+
+/* 进度线 */
+.progress-line {
+  position: absolute;
+  left: 28px;
+  top: 34px;
+  width: 2px;
+  height: calc(100% - 24px);
+  background-color: #e5e5e5;
+  z-index: 0;
+}
+
+.progress-nav-item:last-child .progress-line {
+  display: none;
+}
+
+.progress-nav-item.completed .progress-line {
+  background-color: var(--primary-color);
+}
+
+.progress-nav-item.active .progress-line {
+  background: linear-gradient(to bottom, var(--primary-color) 50%, #e5e5e5 50%);
+}
+
+/* 主内容区域 */
+.main-content {
+  flex-grow: 1;
+  margin-left: var(--sidebar-width);
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部 */
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+/* 内容容器 */
+.content {
+  padding: 24px;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+  flex-grow: 1;
+}
+
+/* 组件区域 - 供团队成员添加内容的区域 */
+.component-area {
+  background-color: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 16px;
+  box-shadow: var(--shadow-light);
+  min-height: 500px;
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: #f2f2f2;
+  color: var(--text-color);
+}
+
+.btn-secondary:hover {
+  background-color: #e5e5e5;
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* 页脚 */
+.footer {
+  border-top: 1px solid var(--border-color);
+  padding: 16px 24px;
+  font-size: 12px;
+  color: var(--text-light);
+  text-align: center;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .mobile-menu-toggle {
+    display: block !important;
+  }
+}
+
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-color);
+}
+
+/* 工具类 */
+.text-center {
+  text-align: center;
+}
+
+.mt-1 {
+  margin-top: 8px;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mt-3 {
+  margin-top: 24px;
+}
+
+.mb-1 {
+  margin-bottom: 8px;
+}
+
+.mb-2 {
+  margin-bottom: 16px;
+}
+
+.mb-3 {
+  margin-bottom: 24px;
+}
+
+/* 辅助类 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

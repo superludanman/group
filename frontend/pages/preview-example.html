@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>预览学习 - AI HTML学习平台</title>
+  <link rel="stylesheet" href="../css/template.css">
+  <style>
+    /* 页面特定样式 */
+    .preview-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .preview-frame {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+      box-shadow: var(--shadow-light);
+    }
+
+    .preview-header {
+      padding: 12px 16px;
+      background: #f9f9f9;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preview-content {
+      padding: 20px;
+      min-height: 300px;
+    }
+
+    .preview-explanation {
+      background: #f7f7f8;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .preview-explanation h3 {
+      margin-bottom: 12px;
+      color: var(--primary-color);
+      font-size: 16px;
+    }
+
+    .highlight-element {
+      position: relative;
+      border: 2px solid var(--primary-color);
+      border-radius: 4px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(16, 163, 127, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(16, 163, 127, 0);
+      }
+    }
+
+    .hint-tooltip {
+      position: absolute;
+      background: var(--primary-color);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      z-index: 100;
+    }
+
+    .hint-tooltip:after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: var(--primary-color) transparent transparent transparent;
+    }
+
+    .element-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .element-btn {
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .element-btn:hover, .element-btn.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 侧边栏 - 竖向进度导航 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1>AI HTML学习平台</h1>
+      </div>
+      <div class="sidebar-content">
+        <nav class="progress-nav">
+          <!-- 进度导航项 -->
+          <a href="preview-example.html" class="progress-nav-item active">
+            <div class="step-number"><span>1</span></div>
+            <span>预览学习</span>
+            <div class="progress-line"></div>
+          </a>
+          
+          <a href="#" class="progress-nav-item">
+            <div class="step-number"><span>2</span></div>
+            <span>代码编写</span>
+            <div class="progress-line"></div>
+          </a>
+          
+          <a href="#" class="progress-nav-item">
+            <div class="step-number"><span>3</span></div>
+            <span>沙盒测试</span>
+            <div class="progress-line"></div>
+          </a>
+          
+          <a href="#" class="progress-nav-item">
+            <div class="step-number"><span>4</span></div>
+            <span>知识总结</span>
+            <div class="progress-line"></div>
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- 主内容区域 -->
+    <main class="main-content">
+      <!-- 头部 -->
+      <header class="header">
+        <button class="mobile-menu-toggle">☰</button>
+        <div class="header-title">预览学习</div>
+        <div class="header-actions">
+          <button>帮助</button>
+        </div>
+      </header>
+
+      <!-- 内容容器 -->
+      <div class="content">
+        <div class="toolbar">
+          <h1>导航栏组件学习</h1>
+          <div>
+            <button class="btn btn-secondary">重置</button>
+            <button class="btn btn-primary">下一步</button>
+          </div>
+        </div>
+
+        <!-- 组件区域 -->
+        <div class="component-area">
+          <div class="element-selector">
+            <button class="element-btn active" data-element="navbar">导航栏</button>
+            <button class="element-btn" data-element="logo">Logo</button>
+            <button class="element-btn" data-element="links">导航链接</button>
+          </div>
+
+          <div class="preview-container">
+            <div class="preview-frame">
+              <div class="preview-header">
+                <div>预览</div>
+                <div>
+                  <button class="btn btn-secondary btn-sm">查看代码</button>
+                </div>
+              </div>
+              <div class="preview-content">
+                <!-- 预览内容 -->
+                <div id="preview-example">
+                  <nav class="navbar highlight-element" id="navbar-element">
+                    <div class="hint-tooltip">这是导航栏元素</div>
+                    <div class="logo" id="logo-element">我的网站</div>
+                    <ul class="nav-links" id="links-element">
+                      <li><a href="#">首页</a></li>
+                      <li><a href="#">关于</a></li>
+                      <li><a href="#">服务</a></li>
+                      <li><a href="#">联系我们</a></li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-explanation">
+              <h3>AI解释</h3>
+              <div id="explanation-text">
+                <p>这是一个导航栏组件，是几乎所有网站都会用到的基本元素。它通常位于页面顶部，帮助用户在网站的不同部分之间导航。</p>
+                <p>导航栏由以下几个部分组成：</p>
+                <ul>
+                  <li><strong>容器</strong>：使用 <code>&lt;nav&gt;</code> 标签定义，语义化地表示这是一个导航部分</li>
+                  <li><strong>Logo</strong>：通常是网站名称或图标，位于导航栏左侧</li>
+                  <li><strong>导航链接</strong>：使用无序列表 <code>&lt;ul&gt;</code> 和列表项 <code>&lt;li&gt;</code> 组织的链接集合</li>
+                </ul>
+                <p>通过CSS，我们可以使用flexbox布局使导航栏的元素排列整齐，并添加样式使其看起来更加美观。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 页脚 -->
+      <footer class="footer">
+        <p>© 2025 AI HTML学习平台 - ACM CHI项目</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // 移动端菜单切换
+    document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
+      document.querySelector('.sidebar').classList.toggle('open');
+    });
+
+    // 元素选择器功能
+    const elementButtons = document.querySelectorAll('.element-btn');
+    const navbarElement = document.getElementById('navbar-element');
+    const logoElement = document.getElementById('logo-element');
+    const linksElement = document.getElementById('links-element');
+    const explanationText = document.getElementById('explanation-text');
+
+    // 初始隐藏其他元素的提示
+    document.querySelectorAll('.hint-tooltip').forEach(tooltip => {
+      if (!tooltip.parentElement.classList.contains('highlight-element')) {
+        tooltip.style.display = 'none';
+      }
+    });
+
+    // 解释文本内容
+    const explanations = {
+      navbar: `
+        <p>这是一个导航栏组件，是几乎所有网站都会用到的基本元素。它通常位于页面顶部，帮助用户在网站的不同部分之间导航。</p>
+        <p>导航栏由以下几个部分组成：</p>
+        <ul>
+          <li><strong>容器</strong>：使用 <code>&lt;nav&gt;</code> 标签定义，语义化地表示这是一个导航部分</li>
+          <li><strong>Logo</strong>：通常是网站名称或图标，位于导航栏左侧</li>
+          <li><strong>导航链接</strong>：使用无序列表 <code>&lt;ul&gt;</code> 和列表项 <code>&lt;li&gt;</code> 组织的链接集合</li>
+        </ul>
+        <p>通过CSS，我们可以使用flexbox布局使导航栏的元素排列整齐，并添加样式使其看起来更加美观。</p>
+      `,
+      logo: `
+        <p>Logo是导航栏中的一个重要元素，通常位于导航栏的左侧。</p>
+        <p>Logo可以是：</p>
+        <ul>
+          <li>网站名称的文本</li>
+          <li>公司或网站的图标</li>
+          <li>文本和图标的组合</li>
+        </ul>
+        <p>在HTML中，Logo通常使用<code>&lt;div&gt;</code>、<code>&lt;h1&gt;</code>或<code>&lt;a&gt;</code>标签实现，并通过CSS添加样式。</p>
+        <p>如果Logo是链接，点击它通常会将用户带回首页，这是一种常见的Web设计模式。</p>
+      `,
+      links: `
+        <p>导航链接是导航栏的核心功能，让用户可以快速访问网站的不同部分。</p>
+        <p>在HTML中，导航链接通常使用以下结构实现：</p>
+        <pre><code>&lt;ul class="nav-links"&gt;
+  &lt;li&gt;&lt;a href="#"&gt;首页&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href="#"&gt;关于&lt;/a&gt;&lt;/li&gt;
+  ...
+&lt;/ul&gt;</code></pre>
+        <p>使用无序列表（<code>&lt;ul&gt;</code>）和列表项（<code>&lt;li&gt;</code>）组织链接是一种语义化的HTML实践，有助于屏幕阅读器等辅助技术理解页面结构。</p>
+        <p>通过CSS，我们可以移除默认的列表样式（如项目符号），并使链接水平排列。</p>
+      `
+    };
+
+    // 为元素按钮添加点击事件
+    elementButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        // 获取要高亮的元素
+        const elementName = this.getAttribute('data-element');
+        
+        // 重置所有按钮和元素
+        elementButtons.forEach(btn => btn.classList.remove('active'));
+        navbarElement.classList.remove('highlight-element');
+        logoElement.classList.remove('highlight-element');
+        linksElement.classList.remove('highlight-element');
+        
+        // 隐藏所有提示
+        document.querySelectorAll('.hint-tooltip').forEach(tooltip => {
+          tooltip.style.display = 'none';
+        });
+        
+        // 激活当前按钮
+        this.classList.add('active');
+        
+        // 高亮相应元素
+        if (elementName === 'navbar') {
+          navbarElement.classList.add('highlight-element');
+          navbarElement.querySelector('.hint-tooltip').style.display = 'block';
+          navbarElement.querySelector('.hint-tooltip').textContent = '这是导航栏元素';
+        } else if (elementName === 'logo') {
+          logoElement.classList.add('highlight-element');
+          // 创建新的提示
+          let tooltip = document.createElement('div');
+          tooltip.className = 'hint-tooltip';
+          tooltip.textContent = '这是Logo元素';
+          logoElement.appendChild(tooltip);
+        } else if (elementName === 'links') {
+          linksElement.classList.add('highlight-element');
+          // 创建新的提示
+          let tooltip = document.createElement('div');
+          tooltip.className = 'hint-tooltip';
+          tooltip.textContent = '这是导航链接元素';
+          linksElement.appendChild(tooltip);
+        }
+        
+        // 更新解释文本
+        explanationText.innerHTML = explanations[elementName];
+      });
+    });
+
+    // 初始显示导航栏解释
+    explanationText.innerHTML = explanations.navbar;
+  </script>
+</body>
+</html>
