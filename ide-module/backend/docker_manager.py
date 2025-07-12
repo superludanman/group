@@ -201,8 +201,11 @@ class DockerManager:
             """
             
             # 写入文件到容器
+            # 使用Base64编码来避免特殊字符引起的问题
+            import base64
+            encoded_content = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
             exec_result = container.exec_run(
-                cmd=f"bash -c \"mkdir -p {self.workspace_dir}/temp && echo '{html_content}' > {self.workspace_dir}/temp/{html_file}\"",
+                cmd=f"bash -c \"mkdir -p {self.workspace_dir}/temp && echo '{encoded_content}' | base64 -d > {self.workspace_dir}/temp/{html_file}\"",
                 privileged=False
             )
             
