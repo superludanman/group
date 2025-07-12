@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI HTML学习平台 - 代码编辑器</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Monaco Editor CSS -->
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs/editor/editor.main.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏导航 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>AI HTML学习平台</h1>
+            </div>
+            <div class="sidebar-content">
+                <nav class="progress-nav">
+                    <a href="#" class="progress-nav-item active">
+                        <div class="step-number"><span>1</span></div>
+                        <span>预览学习</span>
+                        <div class="progress-line"></div>
+                    </a>
+                    <a href="#" class="progress-nav-item">
+                        <div class="step-number"><span>2</span></div>
+                        <span>编写代码</span>
+                        <div class="progress-line"></div>
+                    </a>
+                    <a href="#" class="progress-nav-item">
+                        <div class="step-number"><span>3</span></div>
+                        <span>运行测试</span>
+                        <div class="progress-line"></div>
+                    </a>
+                    <a href="#" class="progress-nav-item">
+                        <div class="step-number"><span>4</span></div>
+                        <span>知识总结</span>
+                    </a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 头部 -->
+            <header class="header">
+                <button class="mobile-menu-toggle">☰</button>
+                <div class="header-title">代码编辑器</div>
+                <div class="header-actions">
+                    <button id="help-button">帮助</button>
+                </div>
+            </header>
+
+            <!-- 内容容器 -->
+            <div class="content">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <h1>编写和测试HTML代码</h1>
+                    <div class="editor-tabs">
+                        <button class="tab-button active" data-tab="html">HTML</button>
+                        <button class="tab-button" data-tab="css">CSS</button>
+                        <button class="tab-button" data-tab="js">JavaScript</button>
+                    </div>
+                    <div class="toolbar-actions">
+                        <button id="run-button" class="btn btn-primary">运行</button>
+                        <button id="reset-button" class="btn btn-secondary">重置</button>
+                    </div>
+                </div>
+
+                <!-- 编辑器和预览区域 -->
+                <div class="editor-preview-container">
+                    <!-- 编辑器区域 -->
+                    <div class="editor-container">
+                        <div id="monaco-editor" class="monaco-editor"></div>
+                    </div>
+                    
+                    <!-- 预览区域 -->
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <h2>预览</h2>
+                            <button id="refresh-preview" class="btn btn-small">刷新</button>
+                        </div>
+                        <div class="preview-frame-container">
+                            <iframe id="preview-frame" sandbox="allow-scripts" class="preview-frame"></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI对话区域 -->
+                <div class="ai-chat-container">
+                    <div class="ai-chat-header">
+                        <h2>AI助手</h2>
+                        <button id="toggle-chat" class="btn btn-small">展开/收起</button>
+                    </div>
+                    <div class="ai-chat-messages" id="ai-chat-messages">
+                        <div class="ai-message">
+                            <div class="ai-avatar">AI</div>
+                            <div class="ai-content">
+                                <p>你好！我是AI助手，我可以帮助你学习HTML、CSS和JavaScript。有任何问题都可以问我。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ai-chat-input">
+                        <textarea id="user-message" placeholder="在这里输入你的问题..."></textarea>
+                        <button id="send-message" class="btn btn-primary">发送</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 页脚 -->
+            <footer class="footer">
+                <p>© 2025 AI HTML学习平台 - ACM CHI项目</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Monaco Editor加载器 -->
+    <script>var require = { paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs' } };</script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs/editor/editor.main.nls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs/editor/editor.main.js"></script>
+    
+    <!-- 应用脚本 -->
+    <script src="js/editor.js"></script>
+    <script src="js/preview.js"></script>
+    <script src="js/ai-chat.js"></script>
+</body>
+</html>
