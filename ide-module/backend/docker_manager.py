@@ -68,6 +68,12 @@ class DockerManager:
         # 清理过期容器
         self.cleanup_expired_containers()
         
+        # 检查会话ID是否已是一个容器ID(可能是从前端返回的容器ID被当作会话ID使用)
+        if session_id and session_id in self.active_containers:
+            logger.info(f"Session ID is already a container ID: {session_id}, reusing directly")
+            self.active_containers[session_id]["last_used"] = datetime.now()
+            return session_id
+        
         # 生成会话ID（如果没有提供）
         if not session_id:
             session_id = str(uuid.uuid4())
@@ -83,8 +89,8 @@ class DockerManager:
             logger.warning(f"Maximum container limit reached: {self.max_containers}")
             raise Exception("Maximum container limit reached")
         
-        # 生成容器名称
-        container_name = f"ide-sandbox-{session_id}"
+        # 生成容器名称 - 使用固定前缀和会话ID的前8位字符，避免容器命名冲突
+        container_name = f"ide-sandbox-{session_id[:8]}-{str(uuid.uuid4())[:8]}"
         
         try:
             logger.info(f"Creating container: {container_name}")
@@ -205,6 +211,34 @@ class DockerManager:
             raise Exception(f"Container not found: {container_id}")
         
         try:
+            # 检查容器是否还在运行
+            try:
+                container.reload()  # 刷新容器状态
+                if container.status != "running":
+                    logger.info(f"Container {container_id} is not running, attempting to start it")
+                    container.start()
+                    # 等待容器启动
+                    time.sleep(1)
+                    container.reload()
+                    if container.status != "running":
+                        logger.error(f"Failed to start container {container_id}")
+                        raise Exception(f"Container {container_id} could not be started")
+            except Exception as e:
+                logger.error(f"Error checking container status: {str(e)}")
+                # 尝试创建新容器
+                try:
+                    # 使用原来的会话ID创建新容器
+                    session_id = self.active_containers[container_id]["session_id"]
+                    # 删除旧容器的记录
+                    del self.active_containers[container_id]
+                    # 创建新容器
+                    new_container_id = self.create_container(session_id)
+                    container_id = new_container_id
+                    container = self.get_container(container_id)
+                except Exception as inner_e:
+                    logger.error(f"Error creating new container: {str(inner_e)}")
+                    raise Exception(f"Failed to recover container: {str(inner_e)}")
+            
             # 更新最后使用时间
             self.active_containers[container_id]["last_used"] = datetime.now()
             
@@ -270,12 +304,20 @@ class DockerManager:
             # 启动预览服务
             preview_url = f"http://{container.name}:3000/temp/{html_file}"
             
+            # 添加跨域访问头部
+            header_cmd = f"echo \"Access-Control-Allow-Origin: *\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\nAccess-Control-Allow-Headers: *\n\" > {self.workspace_dir}/temp/headers.txt"
+            container.exec_run(cmd=["bash", "-c", header_cmd])
+            
+            # 给http-server配置跨域访问头部
+            cors_cmd = f"cd {self.workspace_dir} && pkill -f 'http-server' && http-server -p 3000 --cors -c-1 &"
+            container.exec_run(cmd=["bash", "-c", cors_cmd])
+            
             return {
                 "status": "success",
                 "container_id": container_id,
                 "file_id": file_id,
                 "preview_url": preview_url,
-                "local_url": f"http://localhost:3000/temp/{html_file}"
+                "local_url": f"http://localhost:3000/temp/{html_file}?t={int(time.time())}"
             }
             
         except Exception as e:

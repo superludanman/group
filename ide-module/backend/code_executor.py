@@ -50,7 +50,12 @@ class CodeExecutor:
         """
         try:
             # 获取或创建容器
-            container_id = await self._get_or_create_container(code.session_id)
+            # 如果提供的会话ID是容器ID，直接使用该容器
+            if code.session_id and self.docker_manager.get_container(code.session_id):
+                container_id = code.session_id
+                logger.info(f"Using container ID directly as session ID: {container_id}")
+            else:
+                container_id = await self._get_or_create_container(code.session_id)
             
             # 执行代码
             result = await self._run_code_in_container(container_id, code)
@@ -76,7 +81,12 @@ class CodeExecutor:
         """
         try:
             # 获取或创建容器
-            container_id = await self._get_or_create_container(code.session_id)
+            # 如果提供的会话ID是容器ID，直接使用该容器
+            if code.session_id and self.docker_manager.get_container(code.session_id):
+                container_id = code.session_id
+                logger.info(f"Using container ID directly as session ID: {container_id}")
+            else:
+                container_id = await self._get_or_create_container(code.session_id)
             
             # 执行静态检查
             result = await self._run_static_check(container_id, code)

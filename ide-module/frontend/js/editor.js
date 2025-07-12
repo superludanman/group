@@ -241,6 +241,90 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateLocalPreview() {
         const previewFrame = document.getElementById('preview-frame');
         try {
+            // 添加心跳和消息传递功能的脚本
+            const consoleOverrideScript = `
+                // 重写控制台方法，安全地传递给父窗口
+                (function() {
+                    const originalConsoleLog = console.log;
+                    const originalConsoleError = console.error;
+                    const originalConsoleWarn = console.warn;
+                    
+                    // 重写console.log
+                    console.log = function() {
+                        originalConsoleLog.apply(this, arguments);
+                        try {
+                            const logData = Array.from(arguments).map(arg => {
+                                if (typeof arg === 'object') {
+                                    try { return JSON.stringify(arg); }
+                                    catch (e) { return String(arg); }
+                                }
+                                return String(arg);
+                            }).join(' ');
+                            window.parent.postMessage({ type: 'log', content: logData }, '*');
+                        } catch (e) { /* 忽略错误 */ }
+                    };
+                    
+                    // 重写console.error
+                    console.error = function() {
+                        originalConsoleError.apply(this, arguments);
+                        try {
+                            const errorData = Array.from(arguments).map(arg => {
+                                if (typeof arg === 'object') {
+                                    try { return JSON.stringify(arg); }
+                                    catch (e) { return String(arg); }
+                                }
+                                return String(arg);
+                            }).join(' ');
+                            window.parent.postMessage({ type: 'error', content: errorData }, '*');
+                        } catch (e) { /* 忽略错误 */ }
+                    };
+                    
+                    // 重写console.warn
+                    console.warn = function() {
+                        originalConsoleWarn.apply(this, arguments);
+                        try {
+                            const warnData = Array.from(arguments).map(arg => {
+                                if (typeof arg === 'object') {
+                                    try { return JSON.stringify(arg); }
+                                    catch (e) { return String(arg); }
+                                }
+                                return String(arg);
+                            }).join(' ');
+                            window.parent.postMessage({ type: 'warn', content: warnData }, '*');
+                        } catch (e) { /* 忽略错误 */ }
+                    };
+                    
+                    // 添加事件监听
+                    document.addEventListener('click', function(event) {
+                        try {
+                            const element = event.target;
+                            const elementInfo = {
+                                tagName: element.tagName.toLowerCase(),
+                                id: element.id || '',
+                                className: element.className || '',
+                                text: element.textContent ? element.textContent.substring(0, 50) : ''
+                            };
+                            window.parent.postMessage({ 
+                                type: 'interaction', 
+                                action: 'click', 
+                                data: elementInfo 
+                            }, '*');
+                        } catch (e) { /* 忽略错误 */ }
+                    });
+                    
+                    // 发送心跳信号，防止连接中断
+                    function sendHeartbeat() {
+                        try {
+                            window.parent.postMessage({ type: 'heartbeat' }, '*');
+                        } catch (e) { /* 忽略错误 */ }
+                    }
+                    
+                    // 立即发送一次心跳，然后每秒发送一次
+                    sendHeartbeat();
+                    setInterval(sendHeartbeat, 1000);
+                })();
+            `;
+            
             const content = `
                 <!DOCTYPE html>
                 <html>
@@ -254,6 +338,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <body>
                     ${editorState.html}
                     <script>
+                        ${consoleOverrideScript}
+                        
                         try {
                             ${editorState.js}
                         } catch (error) {
@@ -286,6 +372,46 @@ document.addEventListener('DOMContentLoaded', function() {
             previewFrame.onload = function() {
                 URL.revokeObjectURL(url);
             };
+            
+            // 改进的心跳检测机制
+            if (!window.hasHeartbeatListener) {
+                // 使用自定义事件来接收心跳
+                document.addEventListener('preview-heartbeat', function() {
+                    window.lastPreviewHeartbeatTime = Date.now();
+                    // 收到心跳，预览正常
+                    console.log('预览心跳正常');
+                });
+                window.hasHeartbeatListener = true;
+            }
+            
+            // 初始化心跳时间
+            window.lastPreviewHeartbeatTime = Date.now();
+            
+            // 添加预览框架心跳检测
+            if (window.localPreviewHeartbeatInterval) {
+                clearInterval(window.localPreviewHeartbeatInterval);
+            }
+            
+            window.localPreviewHeartbeatInterval = setInterval(() => {
+                const currentTime = Date.now();
+                const heartbeatTimeout = 8000; // 心跳超时时间，单位毫秒
+                
+                // 如果超过超时时间没有心跳，则重新加载预览
+                if (currentTime - window.lastPreviewHeartbeatTime > heartbeatTimeout) {
+                    console.log('预览心跳超时，尝试重新加载');
+                    
+                    // 尝试保持当前页面的段落和滚动位置
+                    try {
+                        // 更新预览
+                        updateLocalPreview();
+                        
+                        // 重置心跳时间为当前时间
+                        window.lastPreviewHeartbeatTime = currentTime;
+                    } catch (e) {
+                        console.error('重新加载预览出错:', e);
+                    }
+                }
+            }, 2000); // 每2秒检查一次
         } catch (error) {
             console.error('生成预览出错:', error);
             showNotification('预览生成错误', 'error');
@@ -372,6 +498,26 @@ document.addEventListener('DOMContentLoaded', function() {
     function updatePreviewWithBackendUrl(url) {
         const previewFrame = document.getElementById('preview-frame');
         previewFrame.src = url;
+        
+        // 添加30秒的心跳检查，确保预览保持连接
+        if (window.previewHeartbeatInterval) {
+            clearInterval(window.previewHeartbeatInterval);
+        }
+        
+        window.previewHeartbeatInterval = setInterval(() => {
+            // 检查iframe是否可访问
+            try {
+                if (!previewFrame.contentWindow || previewFrame.contentWindow.closed) {
+                    // 预览窗口不可访问，尝试重新加载
+                    console.log('预览窗口不可访问，尝试重新加载');
+                    previewFrame.src = url;
+                }
+            } catch (e) {
+                // 跨域错误或其他错误，尝试重新加载
+                console.log('预览窗口出错，尝试重新加载');
+                previewFrame.src = url;
+            }
+        }, 5000); // 每5秒检查一次
     }
 
     // 重置编辑器
