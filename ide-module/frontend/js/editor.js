@@ -433,6 +433,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // 执行静态检查
         performStaticCheck();
         
+        // 立即更新本地预览，提高响应速度
+        updateLocalPreview();
+        
+        // 显示消息提示用户正在连接到后端
+        showNotification('预览已更新，正在连接到沙箱环境...', 'info', 1000);
+        
         // 准备代码提交数据
         const codeData = {
             html: editorState.html,
@@ -441,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
             session_id: editorState.sessionId
         };
         
-        // 尝试调用后端API，如果失败则回退到本地预览
+        // 尝试调用后端API，异步连接到沙箱环境
         fetch(`${editorState.backendUrl}/execute`, {
             method: 'POST',
             headers: {
@@ -465,26 +471,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 更新预览框
                 if (data.preview_url) {
+                    // 如果预览URL可用，更新到后端预览
                     updatePreviewWithBackendUrl(data.local_url || data.preview_url);
-                } else {
-                    // 如果没有预览URL，使用本地预览
-                    updateLocalPreview();
+                    // 显示成功消息
+                    showNotification('代码已在沙箱环境中运行', 'success');
                 }
-                
-                // 显示成功消息
-                showNotification('代码已成功运行', 'success');
+                // 注意：这里不再调用本地预览，因为我们已经在开始时调用过了
             } else {
                 // 显示错误消息
-                showNotification(`运行错误: ${data.message || '未知错误'}`, 'error');
-                // 使用本地预览作为备选
-                updateLocalPreview();
+                showNotification(`沙箱环境运行错误: ${data.message || '未知错误'}`, 'error');
+                // 注意：不再调用本地预览，因为我们已经在开始时调用过了
             }
         })
         .catch(error => {
             console.error('运行代码出错:', error);
-            showNotification(`服务器连接错误，使用本地预览模式`, 'info');
-            // 出错时使用本地预览
-            updateLocalPreview();
+            showNotification(`沙箱环境连接错误，使用本地预览模式`, 'info');
+            // 注意：不再调用本地预览，因为我们已经在开始时调用过了
         })
         .finally(() => {
             // 重置运行状态
@@ -848,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 显示通知消息
-    function showNotification(message, type = 'info') {
+    function showNotification(message, type = 'info', duration = 3000) {
         // 创建通知元素
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
@@ -887,7 +889,7 @@ document.addEventListener('DOMContentLoaded', function() {
             notification.style.opacity = '0';
             notification.style.transition = 'opacity 0.5s ease';
             setTimeout(() => notification.remove(), 500);
-        }, 3000);
+        }, duration);
     }
     
     // 初始化预览
