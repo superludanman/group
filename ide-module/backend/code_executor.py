@@ -102,6 +102,8 @@ class CodeExecutor:
         """
         # 使用线程池执行阻塞的Docker操作
         loop = asyncio.get_event_loop()
+        # DockerManager.create_container现在会先检查是否存在会话ID对应的容器
+        # 如果存在，则返回现有容器ID；如果不存在，则创建新容器
         return await loop.run_in_executor(None, self.docker_manager.create_container, session_id)
     
     async def _run_code_in_container(self, container_id: str, code: CodeSubmission) -> ExecutionResult:
@@ -171,9 +173,29 @@ class CodeExecutor:
         Returns:
             操作是否成功
         """
-        # 实际实现中应查找并停止与会话关联的容器
-        # 简化示例中直接返回成功
-        return True
+        try:
+            # 查找与会话ID关联的容器
+            container_id = self.docker_manager.find_container_by_session_id(session_id)
+            if container_id:
+                # 停止并移除容器
+                loop = asyncio.get_event_loop()
+                success = await loop.run_in_executor(
+                    None, 
+                    self.docker_manager.stop_container,
+                    container_id
+                )
+                if success:
+                    logger.info(f"Successfully cleaned up session: {session_id}, container: {container_id}")
+                    return True
+                else:
+                    logger.warning(f"Failed to stop container for session: {session_id}")
+                    return False
+            else:
+                logger.info(f"No container found for session: {session_id}")
+                return True  # 没有容器需要清理也算成功
+        except Exception as e:
+            logger.error(f"Error cleaning up session {session_id}: {str(e)}")
+            return False
     
     async def shutdown(self) -> None:
         """关闭服务并清理资源"""

@@ -57,7 +57,7 @@ class DockerManager:
     
     def create_container(self, session_id: Optional[str] = None) -> str:
         """
-        创建新的Docker容器
+        创建新的Docker容器或获取现有容器
         
         Args:
             session_id: 会话ID，如果未提供则自动生成
@@ -68,14 +68,22 @@ class DockerManager:
         # 清理过期容器
         self.cleanup_expired_containers()
         
+        # 生成会话ID（如果没有提供）
+        if not session_id:
+            session_id = str(uuid.uuid4())
+        
+        # 检查是否已存在具有相同会话ID的容器
+        existing_container_id = self.find_container_by_session_id(session_id)
+        if existing_container_id:
+            logger.info(f"Reusing existing container: {existing_container_id} for session: {session_id}")
+            return existing_container_id
+        
         # 检查是否达到最大容器数量
         if len(self.active_containers) >= self.max_containers:
             logger.warning(f"Maximum container limit reached: {self.max_containers}")
             raise Exception("Maximum container limit reached")
         
-        # 生成会话ID和容器名称
-        if not session_id:
-            session_id = str(uuid.uuid4())
+        # 生成容器名称
         container_name = f"ide-sandbox-{session_id}"
         
         try:
@@ -118,6 +126,31 @@ class DockerManager:
             
         except Exception as e:
             logger.error(f"Error creating container: {str(e)}")
+            # 如果错误是由于同名容器已存在，尝试使用Docker API直接查找该容器
+            if "Conflict" in str(e) and container_name in str(e):
+                try:
+                    existing_containers = self.client.containers.list(all=True, filters={"name": container_name})
+                    if existing_containers:
+                        container = existing_containers[0]
+                        # 确保容器处于运行状态
+                        if container.status != "running":
+                            container.start()
+                        
+                        # 将容器添加到活动容器列表
+                        self.active_containers[container.id] = {
+                            "container": container,
+                            "session_id": session_id,
+                            "created_at": datetime.now(),
+                            "last_used": datetime.now(),
+                            "name": container_name
+                        }
+                        
+                        logger.info(f"Recovered existing container: {container.id} (session: {session_id})")
+                        return container.id
+                except Exception as inner_e:
+                    logger.error(f"Error recovering container: {str(inner_e)}")
+            
+            # 如果无法恢复现有容器，抛出原始异常
             raise
     
     def get_container(self, container_id: str) -> Optional[docker.models.containers.Container]:
@@ -134,6 +167,23 @@ class DockerManager:
             # 更新最后使用时间
             self.active_containers[container_id]["last_used"] = datetime.now()
             return self.active_containers[container_id]["container"]
+        return None
+        
+    def find_container_by_session_id(self, session_id: str) -> Optional[str]:
+        """
+        通过会话ID查找容器
+        
+        Args:
+            session_id: 会话ID
+            
+        Returns:
+            容器ID，如果不存在则返回None
+        """
+        for container_id, info in self.active_containers.items():
+            if info["session_id"] == session_id:
+                # 更新最后使用时间
+                self.active_containers[container_id]["last_used"] = datetime.now()
+                return container_id
         return None
     
     def execute_code(self, container_id: str, html_code: str, css_code: str, js_code: str) -> Dict[str, Any]:
