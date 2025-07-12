@@ -37,6 +37,7 @@ backend/.venv/
 *.sublime-workspace
 *.sublime-project
 .claude
+CLAUDE.md
 
 # 日志
 *.log

@@ -122,49 +122,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // 本地预览更新（仅用于快速刷新和初始化）
     function updateLocalPreview() {
         const previewFrame = document.getElementById('preview-frame');
-        const content = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <style>
-                    ${editorState.css}
-                </style>
-            </head>
-            <body>
-                ${editorState.html}
-                <script>
-                    try {
-                        ${editorState.js}
-                    } catch (error) {
-                        console.error('JavaScript错误:', error);
-                        const errorDiv = document.createElement('div');
-                        errorDiv.style.position = 'fixed';
-                        errorDiv.style.bottom = '10px';
-                        errorDiv.style.left = '10px';
-                        errorDiv.style.right = '10px';
-                        errorDiv.style.padding = '10px';
-                        errorDiv.style.backgroundColor = '#ffebee';
-                        errorDiv.style.color = '#c62828';
-                        errorDiv.style.border = '1px solid #ef9a9a';
-                        errorDiv.style.borderRadius = '4px';
-                        errorDiv.style.zIndex = '9999';
-                        errorDiv.textContent = 'JavaScript错误: ' + error.message;
-                        document.body.appendChild(errorDiv);
-                    }
-                </script>
-            </body>
-            </html>
-        `;
+        try {
+            const content = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <style>
+                        ${editorState.css}
+                    </style>
+                </head>
+                <body>
+                    ${editorState.html}
+                    <script>
+                        try {
+                            ${editorState.js}
+                        } catch (error) {
+                            console.error('JavaScript错误:', error);
+                            const errorDiv = document.createElement('div');
+                            errorDiv.style.position = 'fixed';
+                            errorDiv.style.bottom = '10px';
+                            errorDiv.style.left = '10px';
+                            errorDiv.style.right = '10px';
+                            errorDiv.style.padding = '10px';
+                            errorDiv.style.backgroundColor = '#ffebee';
+                            errorDiv.style.color = '#c62828';
+                            errorDiv.style.border = '1px solid #ef9a9a';
+                            errorDiv.style.borderRadius = '4px';
+                            errorDiv.style.zIndex = '9999';
+                            errorDiv.textContent = 'JavaScript错误: ' + error.message;
+                            document.body.appendChild(errorDiv);
+                        }
+                    </script>
+                </body>
+                </html>
+            `;
 
-        // 获取预览框架的文档对象
-        const frameDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-        
-        // 写入HTML内容
-        frameDoc.open();
-        frameDoc.write(content);
-        frameDoc.close();
+            // 直接写入Blob URL来避免跨域问题
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            previewFrame.src = url;
+            
+            // 清理旧的Blob URL
+            previewFrame.onload = function() {
+                URL.revokeObjectURL(url);
+            };
+        } catch (error) {
+            console.error('生成预览出错:', error);
+            showNotification('预览生成错误', 'error');
+        }
     }
     
     // 在后端运行代码并更新预览
@@ -179,6 +186,27 @@ document.addEventListener('DOMContentLoaded', function() {
         runButton.textContent = '运行中...';
         runButton.disabled = true;
         
+        // 执行静态检查
+        performStaticCheck();
+        
+        // 我们当前使用本地预览模式，而不是调用后端执行
+        // 这是因为我们遇到了后端与前端之间的连接问题
+        // 当网络问题解决后，可以重新启用这个功能
+        
+        // 使用本地预览更新
+        updateLocalPreview();
+        
+        // 显示消息
+        showNotification('代码已更新（本地预览模式）', 'success');
+        
+        // 重置运行状态
+        setTimeout(() => {
+            editorState.isRunning = false;
+            runButton.textContent = '运行';
+            runButton.disabled = false;
+        }, 500);
+        
+        /* 暂时禁用后端调用
         // 准备代码提交数据
         const codeData = {
             html: editorState.html,
@@ -236,6 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
             runButton.textContent = '运行';
             runButton.disabled = false;
         });
+        */
     }
     
     // 使用后端URL更新预览框
@@ -282,38 +311,78 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 执行静态检查
     function performStaticCheck() {
-        // 准备代码提交数据
-        const codeData = {
-            html: editorState.html,
-            css: editorState.css,
-            js: editorState.js,
-            session_id: editorState.sessionId
-        };
-        
-        // 调用后端API
-        fetch(`${editorState.backendUrl}/static-check`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(codeData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`服务器响应错误: ${response.status}`);
+        try {
+            // 简单前端静态检查示例
+            const errors = [];
+            const warnings = [];
+            
+            // HTML检查例子
+            if (editorState.html.includes('</div>') && !editorState.html.includes('<div')) {
+                errors.push({
+                    line: editorState.html.split('\n').findIndex(line => line.includes('</div>')) + 1,
+                    column: editorState.html.split('\n').find(line => line.includes('</div>')).indexOf('</div>') + 1,
+                    message: 'HTML错误: 发现关闭标签</div>但没有对应的打开标签'
+                });
             }
-            return response.json();
-        })
-        .then(data => {
-            // 处理静态检查结果
-            if (data.status === 'success') {
-                showStaticCheckResults(data.errors || [], data.warnings || []);
+            
+            // CSS检查例子
+            if (editorState.css.includes('{') && !editorState.css.includes('}')) {
+                warnings.push({
+                    line: editorState.css.split('\n').findIndex(line => line.includes('{')) + 1,
+                    column: editorState.css.split('\n').find(line => line.includes('{')).indexOf('{') + 1,
+                    message: 'CSS警告: 发现没有关闭的大括号'
+                });
             }
-        })
-        .catch(error => {
-            console.error('静态检查出错:', error);
-            // 静态检查失败时不显示错误通知，以免干扰用户
-        });
+            
+            // JS检查例子
+            if (editorState.js.includes('console.log(') && !editorState.js.includes(')')) {
+                warnings.push({
+                    line: editorState.js.split('\n').findIndex(line => line.includes('console.log(')) + 1,
+                    column: editorState.js.split('\n').find(line => line.includes('console.log(')).indexOf('console.log(') + 1,
+                    message: 'JavaScript警告: 发现没有关闭的括号'
+                });
+            }
+            
+            // 显示检查结果
+            showStaticCheckResults(errors, warnings);
+            
+            /* 暂时禁用后端静态检查
+            // 准备代码提交数据
+            const codeData = {
+                html: editorState.html,
+                css: editorState.css,
+                js: editorState.js,
+                session_id: editorState.sessionId
+            };
+            
+            // 调用后端API
+            fetch(`${editorState.backendUrl}/static-check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(codeData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`服务器响应错误: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 处理静态检查结果
+                if (data.status === 'success') {
+                    showStaticCheckResults(data.errors || [], data.warnings || []);
+                }
+            })
+            .catch(error => {
+                console.error('静态检查出错:', error);
+                // 静态检查失败时不显示错误通知，以免干扰用户
+            });
+            */
+        } catch (error) {
+            console.error('静态检查错误:', error);
+        }
     }
     
     // 显示静态检查结果
