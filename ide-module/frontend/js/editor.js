@@ -18,11 +18,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化Monaco编辑器
     require(['vs/editor/editor.main'], function() {
+        // 引入编程语言支持
+        monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+            noSemanticValidation: false,
+            noSyntaxValidation: false,
+        });
+        
         // 配置编辑器主题
         monaco.editor.defineTheme('myCustomTheme', {
             base: 'vs',
             inherit: true,
-            rules: [],
+            rules: [
+                { token: 'comment', foreground: '008800' },
+                { token: 'keyword', foreground: '0000ff' },
+                { token: 'string', foreground: 'aa6600' },
+                { token: 'number', foreground: '116644' }
+            ],
             colors: {
                 'editor.background': '#f9f9f9',
                 'editor.lineHighlightBackground': '#f0f0f0',
@@ -43,6 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
             renderWhitespace: 'none',
             lineNumbers: 'on',
             tabSize: 2,
+            formatOnPaste: true,
+            formatOnType: true,
+            autoIndent: 'full',
+            semanticHighlighting: true
         });
 
         // 监听编辑器内容变化
@@ -89,6 +104,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     const model = editor.getModel();
                     monaco.editor.setModelLanguage(model, tab);
                     editor.setValue(editorState[tab]);
+                    
+                    // 如果是JS标签页，启用特定的JS检查和格式化
+                    if (tab === 'js') {
+                        // 启用编辑器的JS语法高亮和检查
+                        monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+                            noSemanticValidation: false,
+                            noSyntaxValidation: false,
+                        });
+                        
+                        // 如果编辑器已有内容，执行立即检查
+                        if (editorState[tab] && editorState[tab].trim().length > 0) {
+                            setTimeout(performStaticCheck, 300);
+                        }
+                    }
                 }
             });
         });
@@ -189,24 +218,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 执行静态检查
         performStaticCheck();
         
-        // 我们当前使用本地预览模式，而不是调用后端执行
-        // 这是因为我们遇到了后端与前端之间的连接问题
-        // 当网络问题解决后，可以重新启用这个功能
-        
-        // 使用本地预览更新
-        updateLocalPreview();
-        
-        // 显示消息
-        showNotification('代码已更新（本地预览模式）', 'success');
-        
-        // 重置运行状态
-        setTimeout(() => {
-            editorState.isRunning = false;
-            runButton.textContent = '运行';
-            runButton.disabled = false;
-        }, 500);
-        
-        /* 暂时禁用后端调用
         // 准备代码提交数据
         const codeData = {
             html: editorState.html,
@@ -215,13 +226,15 @@ document.addEventListener('DOMContentLoaded', function() {
             session_id: editorState.sessionId
         };
         
-        // 调用后端API
+        // 尝试调用后端API，如果失败则回退到本地预览
         fetch(`${editorState.backendUrl}/execute`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(codeData)
+            body: JSON.stringify(codeData),
+            // 设置超时，快速失败如果后端不可达
+            timeout: 2000
         })
         .then(response => {
             if (!response.ok) {
@@ -254,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('运行代码出错:', error);
-            showNotification(`请求错误: ${error.message}`, 'error');
+            showNotification(`服务器连接错误，使用本地预览模式`, 'info');
             // 出错时使用本地预览
             updateLocalPreview();
         })
@@ -264,7 +277,6 @@ document.addEventListener('DOMContentLoaded', function() {
             runButton.textContent = '运行';
             runButton.disabled = false;
         });
-        */
     }
     
     // 使用后端URL更新预览框
@@ -312,13 +324,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 执行静态检查
     function performStaticCheck() {
         try {
-            // 简单前端静态检查示例
-            const errors = [];
-            const warnings = [];
+            // 先进行前端静态检查
+            const frontendErrors = [];
+            const frontendWarnings = [];
             
             // HTML检查例子
             if (editorState.html.includes('</div>') && !editorState.html.includes('<div')) {
-                errors.push({
+                frontendErrors.push({
                     line: editorState.html.split('\n').findIndex(line => line.includes('</div>')) + 1,
                     column: editorState.html.split('\n').find(line => line.includes('</div>')).indexOf('</div>') + 1,
                     message: 'HTML错误: 发现关闭标签</div>但没有对应的打开标签'
@@ -327,27 +339,85 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // CSS检查例子
             if (editorState.css.includes('{') && !editorState.css.includes('}')) {
-                warnings.push({
+                frontendWarnings.push({
                     line: editorState.css.split('\n').findIndex(line => line.includes('{')) + 1,
                     column: editorState.css.split('\n').find(line => line.includes('{')).indexOf('{') + 1,
                     message: 'CSS警告: 发现没有关闭的大括号'
                 });
             }
             
-            // JS检查例子
-            if (editorState.js.includes('console.log(') && !editorState.js.includes(')')) {
-                warnings.push({
-                    line: editorState.js.split('\n').findIndex(line => line.includes('console.log(')) + 1,
-                    column: editorState.js.split('\n').find(line => line.includes('console.log(')).indexOf('console.log(') + 1,
-                    message: 'JavaScript警告: 发现没有关闭的括号'
+            // JavaScript检查增强
+            if (editorState.activeTab === 'js') {
+                const jsCode = editorState.js;
+                
+                // 检查括号匹配
+                if ((jsCode.match(/\(/g) || []).length !== (jsCode.match(/\)/g) || []).length) {
+                    frontendErrors.push({
+                        line: 1,
+                        column: 1,
+                        message: 'JavaScript错误: 括号不匹配'
+                    });
+                }
+                
+                // 检查花括号匹配
+                if ((jsCode.match(/\{/g) || []).length !== (jsCode.match(/\}/g) || []).length) {
+                    frontendErrors.push({
+                        line: 1,
+                        column: 1,
+                        message: 'JavaScript错误: 花括号不匹配'
+                    });
+                }
+                
+                // 检查方括号匹配
+                if ((jsCode.match(/\[/g) || []).length !== (jsCode.match(/\]/g) || []).length) {
+                    frontendErrors.push({
+                        line: 1,
+                        column: 1,
+                        message: 'JavaScript错误: 方括号不匹配'
+                    });
+                }
+                
+                // 检查常见的语法错误模式
+                if (jsCode.includes('var ') && jsCode.includes('let ')) {
+                    frontendWarnings.push({
+                        line: jsCode.split('\n').findIndex(line => line.includes('var ')) + 1,
+                        column: 1,
+                        message: 'JavaScript警告: 混合使用var和let可能引起变量作用域混乱'
+                    });
+                }
+                
+                // 检查未定义变量调用
+                const variablePattern = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g;
+                const calledVariables = Array.from(jsCode.matchAll(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g), m => m[1]);
+                const definedVariables = Array.from(jsCode.matchAll(variablePattern), m => m[1]);
+                
+                // 排除内置函数
+                const builtInFunctions = ['console', 'alert', 'document', 'window', 'parseInt', 'parseFloat', 'setTimeout', 'setInterval'];
+                
+                calledVariables.forEach(variable => {
+                    if (!definedVariables.includes(variable) && !builtInFunctions.includes(variable)) {
+                        frontendWarnings.push({
+                            line: jsCode.split('\n').findIndex(line => line.includes(variable + '(')) + 1,
+                            column: jsCode.split('\n').find(line => line.includes(variable + '(')).indexOf(variable),
+                            message: `JavaScript警告: 可能调用了未定义的函数 '${variable}'`
+                        });
+                    }
                 });
+                
+                // 检查没有完成的语句
+                if (jsCode.trim().endsWith(';') && jsCode.trim().length > 1) {
+                    frontendWarnings.push({
+                        line: jsCode.split('\n').length,
+                        column: jsCode.split('\n').pop().length,
+                        message: 'JavaScript警告: 可能存在未完成的代码语句'
+                    });
+                }
             }
             
-            // 显示检查结果
-            showStaticCheckResults(errors, warnings);
+            // 显示前端检查结果
+            showStaticCheckResults(frontendErrors, frontendWarnings);
             
-            /* 暂时禁用后端静态检查
-            // 准备代码提交数据
+            // 尝试调用后端静态检查 API
             const codeData = {
                 html: editorState.html,
                 css: editorState.css,
@@ -361,7 +431,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(codeData)
+                body: JSON.stringify(codeData),
+                // 设置超时，快速失败如果后端不可达
+                timeout: 1000
             })
             .then(response => {
                 if (!response.ok) {
@@ -372,14 +444,17 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 // 处理静态检查结果
                 if (data.status === 'success') {
-                    showStaticCheckResults(data.errors || [], data.warnings || []);
+                    // 合并前端和后端的错误和警告
+                    const combinedErrors = [...frontendErrors, ...(data.errors || [])];
+                    const combinedWarnings = [...frontendWarnings, ...(data.warnings || [])];
+                    showStaticCheckResults(combinedErrors, combinedWarnings);
                 }
             })
             .catch(error => {
                 console.error('静态检查出错:', error);
+                // 当后端静态检查失败时，保留前端检查结果
                 // 静态检查失败时不显示错误通知，以免干扰用户
             });
-            */
         } catch (error) {
             console.error('静态检查错误:', error);
         }
