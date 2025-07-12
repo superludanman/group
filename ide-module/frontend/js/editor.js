@@ -19,26 +19,83 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化Monaco编辑器
     require(['vs/editor/editor.main'], function() {
         // 引入编程语言支持
-        monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+        const jsDefaults = monaco.languages.typescript.javascriptDefaults;
+        
+        // 配置JS语言特性
+        jsDefaults.setCompilerOptions({
+            target: monaco.languages.typescript.ScriptTarget.ES2016,
+            allowNonTsExtensions: true,
+            moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+            module: monaco.languages.typescript.ModuleKind.CommonJS,
+            noEmit: true,
+            typeRoots: ["node_modules/@types"],
+            jsx: monaco.languages.typescript.JsxEmit.React
+        });
+
+        // 启用JS语言的语法和语义验证
+        jsDefaults.setDiagnosticsOptions({
             noSemanticValidation: false,
             noSyntaxValidation: false,
+            diagnosticCodesToIgnore: [1005, 1068, 1109]
         });
+
+        // 添加DOM类型定义
+        jsDefaults.addExtraLib(
+        `declare var document: {
+            createElement(tagName: string): HTMLElement;
+            querySelector(selectors: string): HTMLElement;
+            querySelectorAll(selectors: string): HTMLElement[];
+            getElementById(elementId: string): HTMLElement;
+            body: HTMLElement;
+        };
+
+        interface HTMLElement {
+            appendChild(node: HTMLElement): HTMLElement;
+            innerHTML: string;
+            style: any;
+            onclick: Function;
+            value: string;
+            addEventListener(event: string, listener: Function): void;
+        };
+
+        declare var console: {
+            log(...args: any[]): void;
+            error(...args: any[]): void;
+            warn(...args: any[]): void;
+        };
+
+        declare var window: {
+            alert(message: string): void;
+            addEventListener(event: string, listener: Function): void;
+        };
+        `, 'ts:dom.d.ts');
         
         // 配置编辑器主题
         monaco.editor.defineTheme('myCustomTheme', {
             base: 'vs',
             inherit: true,
             rules: [
-                { token: 'comment', foreground: '008800' },
-                { token: 'keyword', foreground: '0000ff' },
+                { token: 'comment', foreground: '008800', fontStyle: 'italic' },
+                { token: 'keyword', foreground: '0000ff', fontStyle: 'bold' },
                 { token: 'string', foreground: 'aa6600' },
-                { token: 'number', foreground: '116644' }
+                { token: 'number', foreground: '116644' },
+                { token: 'identifier', foreground: '000000' },
+                { token: 'type', foreground: '267f99' },
+                { token: 'delimiter', foreground: '000000' },
+                { token: 'delimiter.parenthesis', foreground: '000000' },
+                { token: 'delimiter.curly', foreground: '000000' },
+                { token: 'operator', foreground: '000000' },
+                { token: 'function', foreground: '795e26' }
             ],
             colors: {
                 'editor.background': '#f9f9f9',
                 'editor.lineHighlightBackground': '#f0f0f0',
                 'editorLineNumber.foreground': '#999999',
                 'editor.selectionBackground': '#c0ddff',
+                'editor.inactiveSelectionBackground': '#e5ebf1',
+                'editorError.foreground': '#ff0000',
+                'editorWarning.foreground': '#ffa500',
+                'editorInfo.foreground': '#008800'
             }
         });
 
@@ -57,7 +114,17 @@ document.addEventListener('DOMContentLoaded', function() {
             formatOnPaste: true,
             formatOnType: true,
             autoIndent: 'full',
-            semanticHighlighting: true
+            semanticHighlighting: true,
+            suggestOnTriggerCharacters: true,
+            acceptSuggestionOnCommitCharacter: true,
+            wordBasedSuggestions: true,
+            parameterHints: { enabled: true },
+            folding: true,
+            renderValidationDecorations: 'on',
+            fontSize: 14,
+            fontFamily: "'Fira Code', Consolas, 'Courier New', monospace",
+            fontLigatures: true,
+            cursorBlinking: 'smooth'
         });
 
         // 监听编辑器内容变化
@@ -107,10 +174,32 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // 如果是JS标签页，启用特定的JS检查和格式化
                     if (tab === 'js') {
+                        // 重新配置编辑器，使用全功能JS模式
+                        const oldModel = editor.getModel();
+                        const newModel = monaco.editor.createModel(editorState[tab], 'javascript');
+                        editor.setModel(newModel);
+                        oldModel.dispose(); // 处理旧模型以避免内存泄漏
+                        
                         // 启用编辑器的JS语法高亮和检查
                         monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
                             noSemanticValidation: false,
                             noSyntaxValidation: false,
+                            diagnosticCodesToIgnore: [1005, 1068, 1109]
+                        });
+                        
+                        // 配置编辑器选项
+                        editor.updateOptions({
+                            suggestOnTriggerCharacters: true,
+                            wordBasedSuggestions: true,
+                            snippetSuggestions: 'inline',
+                            suggest: {
+                                showFunctions: true,
+                                showVariables: true,
+                                showClasses: true,
+                                showWords: true,
+                                showMethods: true,
+                                showProperties: true
+                            }
                         });
                         
                         // 如果编辑器已有内容，执行立即检查
@@ -462,45 +551,154 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 显示静态检查结果
     function showStaticCheckResults(errors, warnings) {
-        // 将来可以实现在编辑器中显示错误和警告
-        if (errors.length > 0 || warnings.length > 0) {
-            // 添加编辑器装饰，显示错误和警告
-            const model = editor.getModel();
-            const decorations = [];
+        // 先清除所有现有的错误标记
+        if (window.currentDecorations) {
+            editor.deltaDecorations(window.currentDecorations, []);
+        }
+        
+        // 准备新的装饰
+        const decorations = [];
+        const model = editor.getModel();
+        
+        // 如果没有错误或警告，则只清除装饰
+        if (errors.length === 0 && warnings.length === 0) {
+            window.currentDecorations = [];
+            return;
+        }
+        
+        // 创建VSCode风格的问题面板
+        const problemsDiv = document.getElementById('problems-panel') || createProblemsPanel();
+        problemsDiv.innerHTML = ''; // 清空现有内容
+        
+        // 添加错误标题
+        if (errors.length > 0) {
+            const errorHeader = document.createElement('div');
+            errorHeader.className = 'problem-category';
+            errorHeader.innerHTML = `<span class="problem-icon error">⚠️</span> 错误 (${errors.length})`;
+            problemsDiv.appendChild(errorHeader);
             
             // 处理错误
-            errors.forEach(error => {
+            errors.forEach((error, index) => {
                 if (error.line && error.column) {
+                    // 创建错误装饰
+                    const lineLength = model.getLineLength(error.line) || 1;
+                    const endColumn = Math.min(error.column + 10, lineLength);
+                    
                     decorations.push({
-                        range: new monaco.Range(error.line, error.column, error.line, error.column + 1),
+                        range: new monaco.Range(error.line, error.column, error.line, endColumn),
                         options: {
-                            isWholeLine: true,
-                            className: 'monaco-error-line',
-                            hoverMessage: { value: error.message }
+                            inlineClassName: 'monaco-error-squiggle',
+                            hoverMessage: { value: error.message },
+                            overviewRuler: {
+                                color: '#FF0000',
+                                position: monaco.editor.OverviewRulerLane.Right
+                            },
+                            minimap: {
+                                color: '#FF0000',
+                                position: monaco.editor.MinimapPosition.Inline
+                            }
                         }
                     });
+                    
+                    // 添加到问题面板
+                    const problemItem = document.createElement('div');
+                    problemItem.className = 'problem-item';
+                    problemItem.innerHTML = `
+                        <span class="problem-icon error">⛔</span>
+                        <span class="problem-message">${error.message}</span>
+                        <span class="problem-location">[${error.line}:${error.column}]</span>
+                    `;
+                    problemItem.addEventListener('click', () => {
+                        editor.revealPositionInCenter({ lineNumber: error.line, column: error.column });
+                        editor.setPosition({ lineNumber: error.line, column: error.column });
+                        editor.focus();
+                    });
+                    problemsDiv.appendChild(problemItem);
                 }
             });
+        }
+        
+        // 添加警告标题
+        if (warnings.length > 0) {
+            const warningHeader = document.createElement('div');
+            warningHeader.className = 'problem-category';
+            warningHeader.innerHTML = `<span class="problem-icon warning">⚠</span> 警告 (${warnings.length})`;
+            problemsDiv.appendChild(warningHeader);
             
             // 处理警告
-            warnings.forEach(warning => {
+            warnings.forEach((warning, index) => {
                 if (warning.line && warning.column) {
+                    // 创建警告装饰
+                    const lineLength = model.getLineLength(warning.line) || 1;
+                    const endColumn = Math.min(warning.column + 10, lineLength);
+                    
                     decorations.push({
-                        range: new monaco.Range(warning.line, warning.column, warning.line, warning.column + 1),
+                        range: new monaco.Range(warning.line, warning.column, warning.line, endColumn),
                         options: {
-                            isWholeLine: true,
-                            className: 'monaco-warning-line',
-                            hoverMessage: { value: warning.message }
+                            inlineClassName: 'monaco-warning-squiggle',
+                            hoverMessage: { value: warning.message },
+                            overviewRuler: {
+                                color: '#FFA500',
+                                position: monaco.editor.OverviewRulerLane.Right
+                            },
+                            minimap: {
+                                color: '#FFA500',
+                                position: monaco.editor.MinimapPosition.Inline
+                            }
                         }
                     });
+                    
+                    // 添加到问题面板
+                    const problemItem = document.createElement('div');
+                    problemItem.className = 'problem-item';
+                    problemItem.innerHTML = `
+                        <span class="problem-icon warning">⚠</span>
+                        <span class="problem-message">${warning.message}</span>
+                        <span class="problem-location">[${warning.line}:${warning.column}]</span>
+                    `;
+                    problemItem.addEventListener('click', () => {
+                        editor.revealPositionInCenter({ lineNumber: warning.line, column: warning.column });
+                        editor.setPosition({ lineNumber: warning.line, column: warning.column });
+                        editor.focus();
+                    });
+                    problemsDiv.appendChild(problemItem);
                 }
             });
-            
-            // 应用装饰
-            if (decorations.length > 0) {
-                editor.deltaDecorations([], decorations);
-            }
         }
+        
+        // 应用装饰
+        window.currentDecorations = editor.deltaDecorations(window.currentDecorations || [], decorations);
+        
+        // 显示问题面板
+        if (errors.length > 0 || warnings.length > 0) {
+            problemsDiv.style.display = 'block';
+        }
+    }
+    
+    // 创建问题面板
+    function createProblemsPanel() {
+        const problemsDiv = document.createElement('div');
+        problemsDiv.id = 'problems-panel';
+        problemsDiv.className = 'problems-panel';
+        
+        // 添加标题栏
+        const titleBar = document.createElement('div');
+        titleBar.className = 'problems-titlebar';
+        titleBar.innerHTML = `
+            <span class="problems-title">问题</span>
+            <button class="problems-close">×</button>
+        `;
+        problemsDiv.appendChild(titleBar);
+        
+        // 添加关闭按钮事件
+        titleBar.querySelector('.problems-close').addEventListener('click', () => {
+            problemsDiv.style.display = 'none';
+        });
+        
+        // 添加到页面
+        document.querySelector('.editor-container').appendChild(problemsDiv);
+        
+        return problemsDiv;
     }
     
     // 显示通知消息
@@ -552,14 +750,89 @@ document.addEventListener('DOMContentLoaded', function() {
     // CSS样式注入
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-        .monaco-error-line {
-            background-color: rgba(255, 0, 0, 0.1);
-            border-left: 2px solid red;
+        /* Monaco Editor 错误和警告样式 */
+        .monaco-error-squiggle {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 3' enable-background='new 0 0 6 3' height='3' width='6'%3E%3Cg fill='%23ff0000'%3E%3Cpolygon points='5.5,0 2.5,3 1.1,3 4.1,0'/%3E%3Cpolygon points='4,0 6,2 6,0.6 5.4,0'/%3E%3Cpolygon points='0,2 1,3 2.4,3 0,0.6'/%3E%3C/g%3E%3C/svg%3E") repeat-x bottom left;
         }
-        .monaco-warning-line {
-            background-color: rgba(255, 255, 0, 0.1);
-            border-left: 2px solid orange;
+
+        .monaco-warning-squiggle {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 3' enable-background='new 0 0 6 3' height='3' width='6'%3E%3Cg fill='%23ffa500'%3E%3Cpolygon points='5.5,0 2.5,3 1.1,3 4.1,0'/%3E%3Cpolygon points='4,0 6,2 6,0.6 5.4,0'/%3E%3Cpolygon points='0,2 1,3 2.4,3 0,0.6'/%3E%3C/g%3E%3C/svg%3E") repeat-x bottom left;
         }
+
+        /* 问题面板样式 */
+        .problems-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background-color: #f8f8f8;
+            border-top: 1px solid #e0e0e0;
+            z-index: 10;
+            overflow-y: auto;
+            display: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .problems-titlebar {
+            padding: 5px 10px;
+            background-color: #eee;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .problems-title {
+            font-weight: bold;
+        }
+
+        .problems-close {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #777;
+        }
+
+        .problems-close:hover {
+            color: #000;
+        }
+
+        .problem-category {
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .problem-item {
+            padding: 5px 10px 5px 30px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .problem-item:hover {
+            background-color: #e8e8e8;
+        }
+
+        .problem-icon {
+            margin-right: 6px;
+        }
+
+        .problem-message {
+            flex-grow: 1;
+        }
+
+        .problem-location {
+            color: #777;
+            margin-left: 10px;
+        }
+
         .notification {
             transition: opacity 0.5s ease;
             opacity: 1;
