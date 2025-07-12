@@ -68,20 +68,47 @@ class DockerManager:
         # 清理过期容器
         self.cleanup_expired_containers()
         
-        # 检查会话ID是否已是一个容器ID(可能是从前端返回的容器ID被当作会话ID使用)
-        if session_id and session_id in self.active_containers:
-            logger.info(f"Session ID is already a container ID: {session_id}, reusing directly")
-            self.active_containers[session_id]["last_used"] = datetime.now()
-            return session_id
-        
         # 生成会话ID（如果没有提供）
         if not session_id:
             session_id = str(uuid.uuid4())
+            logger.info(f"Generated new session ID: {session_id}")
+        else:
+            logger.info(f"Using provided session ID: {session_id}")
+
+        # 策略一：如果会话ID已经是一个容器ID，直接复用
+        if session_id in self.active_containers:
+            logger.info(f"Session ID is already a container ID: {session_id}, reusing directly")
+            self.active_containers[session_id]["last_used"] = datetime.now()
+            
+            # 确保容器处于运行状态
+            container = self.active_containers[session_id]["container"]
+            try:
+                container.reload()
+                if container.status != "running":
+                    logger.info(f"Container {session_id} is not running, attempting to start it")
+                    container.start()
+            except Exception as e:
+                logger.warning(f"Error checking container status: {str(e)}")
+            
+            return session_id
         
-        # 检查是否已存在具有相同会话ID的容器
+        # 策略二：检查是否已存在具有相同会话ID的容器
         existing_container_id = self.find_container_by_session_id(session_id)
         if existing_container_id:
             logger.info(f"Reusing existing container: {existing_container_id} for session: {session_id}")
+            
+            # 确保容器处于运行状态
+            container = self.active_containers[existing_container_id]["container"]
+            try:
+                container.reload()
+                if container.status != "running":
+                    logger.info(f"Container {existing_container_id} is not running, attempting to start it")
+                    container.start()
+            except Exception as e:
+                logger.warning(f"Error checking container status: {str(e)}")
+            
+            # 更新最后使用时间
+            self.active_containers[existing_container_id]["last_used"] = datetime.now()
             return existing_container_id
         
         # 检查是否达到最大容器数量

@@ -49,13 +49,9 @@ class CodeExecutor:
             执行结果
         """
         try:
-            # 获取或创建容器
-            # 如果提供的会话ID是容器ID，直接使用该容器
-            if code.session_id and self.docker_manager.get_container(code.session_id):
-                container_id = code.session_id
-                logger.info(f"Using container ID directly as session ID: {container_id}")
-            else:
-                container_id = await self._get_or_create_container(code.session_id)
+            # 获取或创建容器，使用统一的容器管理逻辑
+            container_id = await self._get_or_create_container(code.session_id)
+            logger.info(f"Using container {container_id} for execute request (session: {code.session_id})")
             
             # 执行代码
             result = await self._run_code_in_container(container_id, code)
@@ -80,13 +76,9 @@ class CodeExecutor:
             检查结果
         """
         try:
-            # 获取或创建容器
-            # 如果提供的会话ID是容器ID，直接使用该容器
-            if code.session_id and self.docker_manager.get_container(code.session_id):
-                container_id = code.session_id
-                logger.info(f"Using container ID directly as session ID: {container_id}")
-            else:
-                container_id = await self._get_or_create_container(code.session_id)
+            # 获取或创建容器，使用统一的容器管理逻辑
+            container_id = await self._get_or_create_container(code.session_id)
+            logger.info(f"Using container {container_id} for static check request (session: {code.session_id})")
             
             # 执行静态检查
             result = await self._run_static_check(container_id, code)
@@ -110,11 +102,24 @@ class CodeExecutor:
         Returns:
             容器ID
         """
-        # 使用线程池执行阻塞的Docker操作
-        loop = asyncio.get_event_loop()
-        # DockerManager.create_container现在会先检查是否存在会话ID对应的容器
-        # 如果存在，则返回现有容器ID；如果不存在，则创建新容器
-        return await loop.run_in_executor(None, self.docker_manager.create_container, session_id)
+        try:
+            # 使用线程池执行阻塞的Docker操作
+            loop = asyncio.get_event_loop()
+            
+            # 先检查是否提供了容器ID而非会话ID
+            if session_id and self.docker_manager.get_container(session_id):
+                logger.info(f"Session ID is already a valid container ID: {session_id}")
+                return session_id
+            
+            # 调用Docker管理器的create_container方法
+            # 该方法会先检查是否已存在相同会话ID的容器
+            # 如果存在，则复用现有容器；如果不存在，则创建新容器
+            container_id = await loop.run_in_executor(None, self.docker_manager.create_container, session_id)
+            logger.info(f"Container management result: {container_id} for session: {session_id}")
+            return container_id
+        except Exception as e:
+            logger.error(f"Error in _get_or_create_container: {str(e)}")
+            raise
     
     async def _run_code_in_container(self, container_id: str, code: CodeSubmission) -> ExecutionResult:
         """

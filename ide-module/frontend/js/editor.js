@@ -2,13 +2,17 @@
  * Monaco编辑器初始化和管理
  */
 document.addEventListener('DOMContentLoaded', function() {
+    // 从本地存储中获取现有会话ID（如果有）
+    const savedSessionId = localStorage.getItem('editorSessionId');
+    console.log(savedSessionId ? `从本地存储中恢复会话ID: ${savedSessionId}` : '未找到本地存储的会话ID');
+    
     // 编辑器状态
     let editorState = {
         activeTab: 'html',
         html: '<div class="demo">\n  <h1>欢迎使用HTML编辑器</h1>\n  <p>这是一个用于学习HTML、CSS和JavaScript的在线编辑器。</p>\n  <button id="demo-button">点击我</button>\n</div>',
         css: '.demo {\n  max-width: 600px;\n  margin: 20px auto;\n  padding: 20px;\n  font-family: Arial, sans-serif;\n  background-color: #f7f7f7;\n  border-radius: 8px;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n}\n\nh1 {\n  color: #10a37f;\n}\n\nbutton {\n  background-color: #10a37f;\n  color: white;\n  border: none;\n  padding: 8px 16px;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background-color: #0e906f;\n}',
         js: 'document.getElementById("demo-button").addEventListener("click", function() {\n  alert("按钮被点击了！");\n});',
-        sessionId: null,
+        sessionId: savedSessionId || null, // 使用本地存储的会话ID或null
         isRunning: false,
         backendUrl: 'http://localhost:8080' // 后端API地址
     };
@@ -439,6 +443,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // 显示消息提示用户正在连接到后端
         showNotification('预览已更新，正在连接到沙箱环境...', 'info', 1000);
         
+        // 确保我们始终使用同一个会话ID，以确保后端只创建一个容器
+        if (!editorState.sessionId) {
+            // 如果没有会话ID，创建一个新的
+            editorState.sessionId = generateUUID();
+            console.log(`运行代码: 创建新的会话ID: ${editorState.sessionId}`);
+            // 将会话ID保存到本地存储，即使页面刷新也能保持会话ID
+            localStorage.setItem('editorSessionId', editorState.sessionId);
+        } else {
+            console.log(`运行代码: 使用现有会话ID: ${editorState.sessionId}`);
+        }
+        
         // 准备代码提交数据
         const codeData = {
             html: editorState.html,
@@ -466,8 +481,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             // 处理成功响应
             if (data.status === 'success') {
-                // 保存会话ID以供后续请求使用
-                editorState.sessionId = data.container_id;
+                // 保存容器ID以供后续请求使用
+                // 注意：我们使用自己生成的会话ID，而不使用后端返回的容器ID
+                // editorState.sessionId = data.container_id; // 不再直接使用容器ID做会话ID
                 
                 // 更新预览框
                 if (data.preview_url) {
@@ -493,6 +509,14 @@ document.addEventListener('DOMContentLoaded', function() {
             editorState.isRunning = false;
             runButton.textContent = '运行';
             runButton.disabled = false;
+        });
+    }
+    
+    // 生成UUID函数，用于生成全局唯一的会话ID
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
         });
     }
     
@@ -552,9 +576,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 清理后端会话
         if (editorState.sessionId) {
-            fetch(`${editorState.backendUrl}/cleanup/${editorState.sessionId}`, {
+            const oldSessionId = editorState.sessionId;
+            console.log(`重置编辑器：清理会话ID ${oldSessionId}`);
+            fetch(`${editorState.backendUrl}/cleanup/${oldSessionId}`, {
                 method: 'POST'
-            }).catch(error => console.error('清理会话失败:', error));
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log(`会话 ${oldSessionId} 已成功清理`);
+                    // 重置会话ID，确保下次会创建新容器
+                    editorState.sessionId = null;
+                    // 同时清除本地存储的会话ID
+                    localStorage.removeItem('editorSessionId');
+                } else {
+                    console.error(`清理会话失败: ${response.status}`);
+                }
+            })
+            .catch(error => console.error('清理会话失败:', error));
         }
     }
 
@@ -661,6 +699,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 js: editorState.js,
                 session_id: editorState.sessionId
             };
+            
+            // 确保我们始终使用同一个会话ID，以确保后端只创建一个容器
+            if (!editorState.sessionId) {
+                // 如果没有会话ID，创建一个新的
+                editorState.sessionId = generateUUID();
+                console.log(`静态检查: 创建新的会话ID: ${editorState.sessionId}`);
+            } else {
+                console.log(`静态检查: 使用现有会话ID: ${editorState.sessionId}`);
+            }
+            
+            // 确保使用最新的会话ID
+            codeData.session_id = editorState.sessionId;
             
             // 调用后端API
             fetch(`${editorState.backendUrl}/static-check`, {
