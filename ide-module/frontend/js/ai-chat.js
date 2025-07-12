@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isExpanded: true,
         messages: [],
         isWaitingForResponse: false,
-        backendUrl: 'http://localhost:8000' // 后端API地址，根据实际情况修改
+        backendUrl: 'http://localhost:8080' // 后端API地址，根据实际情况修改
     };
 
     // DOM元素
