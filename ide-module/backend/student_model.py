@@ -14,6 +14,14 @@ from pydantic import BaseModel
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
+"""
+logging.basicConfig(
+    level=logging.INFO,
+    filename="student_model.log",  # 指定日志文件名
+    filemode="a",  
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+"""
 logger = logging.getLogger("StudentModel")
 
 
