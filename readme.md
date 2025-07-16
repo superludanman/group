@@ -16,7 +16,7 @@
 ├── frontend/               # 前端代码
 │   ├── css/                # CSS样式表
 │   │   ├── main.css        # 基本样式
-│   │   └── template.css    # 模板样式（OpenAI风格）
+│   │   └── template.css    # 模板样式
 │   ├── js/                 # JavaScript文件
 │   ├── images/             # 图像资源
 │   ├── pages/              # HTML页面

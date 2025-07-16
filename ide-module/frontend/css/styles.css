@@ -335,6 +335,59 @@ body {
     border-radius: 0 8px 8px 8px;
     padding: 10px;
     max-width: 85%;
+    overflow: auto;
+}
+
+/* Markdown样式调整 */
+.ai-content .markdown-content {
+    overflow-x: auto;
+}
+
+.ai-content pre {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+    overflow-x: auto;
+    position: relative;
+}
+
+.ai-content pre code {
+    display: block;
+    font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre;
+}
+
+.ai-content code {
+    font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.9em;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.ai-content h1, .ai-content h2, .ai-content h3, .ai-content h4 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.ai-content ul, .ai-content ol {
+    padding-left: 20px;
+    margin-bottom: 10px;
+}
+
+.ai-content blockquote {
+    border-left: 3px solid #ddd;
+    padding-left: 10px;
+    color: #666;
+    margin: 10px 0;
+}
+
+.copy-code-button:hover {
+    background-color: #e0e0e0 !important;
 }
 
 .user-message {

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>测试聊天功能</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+        }
+        textarea {
+            flex: 1;
+            height: 40px;
+            resize: none;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            margin-left: 10px;
+            padding: 0 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .user-message {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        .bot-message {
+            text-align: left;
+            margin-bottom: 10px;
+        }
+        .message-bubble {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+        .user-message .message-bubble {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .bot-message .message-bubble {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <h1>测试聊天功能</h1>
+    <p>这是一个简化版的聊天界面，用于测试消息发送功能</p>
+    
+    <div class="chat-container">
+        <div id="messages" class="messages">
+            <div class="bot-message">
+                <div class="message-bubble">你好！我是测试机器人。请发送消息测试功能。</div>
+            </div>
+        </div>
+        <div class="input-area">
+            <textarea id="message-input" placeholder="输入消息..."></textarea>
+            <button type="button" id="send-button" onclick="sendTestMessage()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局测试发送消息函数
+        function sendTestMessage() {
+            console.log('发送测试消息函数被调用');
+            
+            // 获取输入框和消息容器
+            const input = document.getElementById('message-input');
+            const messages = document.getElementById('messages');
+            
+            if (!input || !messages) {
+                console.error('找不到必要的DOM元素');
+                alert('错误：找不到必要的DOM元素');
+                return;
+            }
+            
+            // 获取消息内容
+            const text = input.value.trim();
+            console.log('消息内容:', text);
+            
+            if (!text) {
+                console.log('消息为空，不发送');
+                return;
+            }
+            
+            // 添加用户消息
+            const userMsg = document.createElement('div');
+            userMsg.className = 'user-message';
+            userMsg.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div>`;
+            messages.appendChild(userMsg);
+            
+            // 清空输入框
+            input.value = '';
+            
+            // 滚动到底部
+            messages.scrollTop = messages.scrollHeight;
+            
+            // 添加机器人回复
+            setTimeout(() => {
+                const botMsg = document.createElement('div');
+                botMsg.className = 'bot-message';
+                botMsg.innerHTML = `<div class="message-bubble">收到你的消息：${escapeHtml(text)}</div>`;
+                messages.appendChild(botMsg);
+                messages.scrollTop = messages.scrollHeight;
+            }, 500);
+        }
+        
+        // HTML转义函数，防止XSS攻击
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // 监听回车键
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendTestMessage();
+            }
+        });
+    </script>
+</body>
+</html>
