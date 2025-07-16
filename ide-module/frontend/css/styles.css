@@ -1,6 +1,6 @@
 :root {
     --background-color: #ffffff;
-    --sidebar-background: #f7f7f8;
+    --panel-background: #f7f7f8;
     --primary-color: #10a37f;
     --primary-hover: #0e906f;
     --text-color: #353740;
@@ -8,6 +8,8 @@
     --border-color: #e5e5e5;
     --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --header-height: 60px;
+    --suggestion-green: #a4fc95;
 }
 
 * {
@@ -21,162 +23,189 @@ body {
     color: var(--text-color);
     background-color: var(--background-color);
     line-height: 1.6;
+    overflow: hidden;
 }
 
-.container {
-    display: flex;
-    min-height: 100vh;
-    max-width: 100%;
-}
-
-/* 侧边栏样式 */
-.sidebar {
-    width: 250px;
-    background-color: var(--sidebar-background);
-    border-right: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 10;
-}
-
-.sidebar-header {
-    padding: 1.5rem 1rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.sidebar-header h1 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--primary-color);
-}
-
-.sidebar-content {
-    padding: 1rem;
-}
-
-.progress-nav {
+.main-container {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-}
-
-.progress-nav-item {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem;
-    border-radius: 4px;
-    text-decoration: none;
-    color: var(--text-color);
-    position: relative;
-    transition: all 0.2s ease;
-}
-
-.progress-nav-item:hover {
-    background-color: rgba(16, 163, 127, 0.1);
-}
-
-.progress-nav-item.active {
-    background-color: rgba(16, 163, 127, 0.1);
-    font-weight: 600;
-}
-
-.step-number {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background-color: #e5e5e5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 0.8rem;
-}
-
-.progress-nav-item.active .step-number {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.progress-line {
-    position: absolute;
-    left: 11px;
-    top: 34px;
-    bottom: -14px;
-    width: 2px;
-    background-color: #e5e5e5;
-    z-index: 0;
-}
-
-.progress-nav-item:last-child .progress-line {
-    display: none;
-}
-
-/* 主内容区域样式 */
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    max-width: calc(100% - 250px);
-}
-
-.header {
-    display: flex;
-    align-items: center;
-    padding: 0.8rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background-color: white;
-    position: sticky;
-    top: 0;
-    z-index: 5;
-}
-
-.mobile-menu-toggle {
-    display: none;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    margin-right: 1rem;
-}
-
-.header-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    flex-grow: 1;
-}
-
-.header-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.content {
-    flex: 1;
-    padding: 1.5rem;
-    max-width: 1600px;
-    margin: 0 auto;
     width: 100%;
+    height: 100vh;
+    overflow: hidden;
 }
 
-.toolbar {
+/* 顶部标题栏样式 */
+.top-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+    height: var(--header-height);
+    padding: 0 20px;
+    background-color: #cccccc;
+    border-bottom: 1px solid var(--border-color);
 }
 
-.toolbar h1 {
+.header-title {
     font-size: 1.5rem;
     font-weight: 600;
+    color: var(--text-color);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* 内容容器样式 */
+.content-container {
+    display: flex;
+    height: calc(100vh - var(--header-height));
+    overflow: hidden;
+    width: 100%;
+}
+
+/* 左侧面板样式 */
+.left-panel {
+    width: 40%;
+    min-width: 300px;
+    background-color: var(--panel-background);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 右侧面板样式 */
+.right-panel {
+    width: 60%;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+}
+
+/* 测试要求区域 */
+.test-requirements-container,
+.test-results-container,
+.suggestions-container {
+    border: 1px solid var(--border-color);
+    background-color: white;
+    margin: 10px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #cccccc;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.panel-content {
+    padding: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: #f8f8f8;
+}
+
+/* 测试结果状态样式 */
+.result-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.result-item.success {
+    background-color: rgba(164, 252, 149, 0.2);
+    border-left: 3px solid #a4fc95;
+}
+
+.result-item.error {
+    background-color: rgba(255, 99, 71, 0.2);
+    border-left: 3px solid tomato;
+}
+
+.result-item.warning {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-left: 3px solid #ffc107;
+}
+
+.result-icon {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.result-message {
+    flex: 1;
+}
+
+.test-status {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-top: 5px;
+    display: inline-block;
+}
+
+.test-status.pass {
+    background-color: rgba(164, 252, 149, 0.3);
+    color: #2c7623;
+}
+
+.test-status.fail {
+    background-color: rgba(255, 99, 71, 0.3);
+    color: #c53030;
+}
+
+/* 修改建议区域 */
+.suggestions-container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    transition: flex-grow 0.3s ease;
+}
+
+.suggestions-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    max-height: 400px;
+}
+
+/* 编辑器工具栏 */
+.editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: var(--panel-background);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .editor-tabs {
     display: flex;
     gap: 0.5rem;
-    margin-top: 1rem;
 }
 
 .tab-button {
@@ -194,22 +223,25 @@ body {
     border-color: var(--primary-color);
 }
 
-.toolbar-actions {
+.editor-preview-area {
     display: flex;
-    gap: 0.5rem;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    padding: 10px;
+    gap: 10px;
+    height: calc(100% - 90px); /* 减去工具栏和底部按钮的高度 */
 }
 
-.editor-preview-container {
-    display: flex;
-    gap: 1rem;
-    height: 500px;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
+/* 编辑器容器相关样式 */
+#editor-html, #editor-css, #editor-js, #editor-preview {
+    width: 100%;
+    height: 100%;
 }
 
 .editor-container {
     flex: 1;
-    min-width: 400px;
+    min-height: 300px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     overflow: hidden;
@@ -218,30 +250,32 @@ body {
 .monaco-editor {
     height: 100%;
     width: 100%;
+    min-height: 200px;
 }
 
 .preview-container {
-    flex: 1;
-    min-width: 400px;
+    height: 250px;
     display: flex;
     flex-direction: column;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     overflow: hidden;
+    margin-top: auto;
 }
 
 .preview-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.5rem 1rem;
+    padding: 8px 12px;
     background-color: #f5f5f5;
     border-bottom: 1px solid var(--border-color);
 }
 
-.preview-header h2 {
+.preview-header h3 {
     font-size: 1rem;
     font-weight: 600;
+    margin: 0;
 }
 
 .preview-frame-container {
@@ -256,37 +290,27 @@ body {
     border: none;
 }
 
-.ai-chat-container {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 1rem;
-}
-
-.ai-chat-header {
+.editor-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    background-color: #f5f5f5;
-    border-bottom: 1px solid var(--border-color);
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px 15px;
+    border-top: 1px solid var(--border-color);
 }
 
-.ai-chat-header h2 {
-    font-size: 1rem;
-    font-weight: 600;
-}
-
+/* AI聊天部分样式调整 */
 .ai-chat-messages {
-    height: 200px;
+    flex: 1;
+    height: 150px;
     overflow-y: auto;
-    padding: 1rem;
+    padding: 15px;
+    transition: all 0.3s ease;
     background-color: white;
 }
 
 .ai-message {
     display: flex;
-    margin-bottom: 1rem;
+    margin-bottom: 15px;
 }
 
 .ai-avatar {
@@ -300,21 +324,21 @@ body {
     justify-content: center;
     font-size: 0.8rem;
     font-weight: bold;
-    margin-right: 0.8rem;
+    margin-right: 10px;
     flex-shrink: 0;
 }
 
 .ai-content {
-    background-color: #f5f5f5;
+    background-color: var(--suggestion-green);
     border-radius: 0 8px 8px 8px;
-    padding: 0.8rem;
-    max-width: 80%;
+    padding: 10px;
+    max-width: 85%;
 }
 
 .user-message {
     display: flex;
     flex-direction: row-reverse;
-    margin-bottom: 1rem;
+    margin-bottom: 15px;
 }
 
 .user-avatar {
@@ -328,7 +352,7 @@ body {
     justify-content: center;
     font-size: 0.8rem;
     font-weight: bold;
-    margin-left: 0.8rem;
+    margin-left: 10px;
     flex-shrink: 0;
 }
 
@@ -336,37 +360,54 @@ body {
     background-color: #4a6ee0;
     color: white;
     border-radius: 8px 0 8px 8px;
-    padding: 0.8rem;
-    max-width: 80%;
+    padding: 10px;
+    max-width: 85%;
 }
 
 .ai-chat-input {
     display: flex;
-    padding: 0.8rem;
+    padding: 10px 15px;
     background-color: white;
     border-top: 1px solid var(--border-color);
 }
 
 .ai-chat-input textarea {
     flex: 1;
-    padding: 0.5rem;
+    padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     resize: none;
     height: 40px;
     font-family: inherit;
-    margin-right: 0.5rem;
+    margin-right: 10px;
 }
 
-.footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--border-color);
-    text-align: center;
-    color: var(--text-light);
-    font-size: 0.9rem;
+.ai-suggestions {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #ddd;
 }
 
-/* 按钮样式 */
+.ai-suggestions p {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.ai-suggestions ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.suggestion-link {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.suggestion-link:hover {
+    text-decoration: underline;
+}
+
+/* 按钮样式修改 */
 .btn {
     padding: 0.5rem 1rem;
     border-radius: 4px;
@@ -374,6 +415,7 @@ body {
     cursor: pointer;
     border: none;
     transition: all 0.2s ease;
+    font-size: 0.9rem;
 }
 
 .btn-primary {
@@ -400,38 +442,57 @@ body {
     font-size: 0.8rem;
 }
 
+/* 测试结果项样式 */
+.result-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.result-item.success {
+    background-color: rgba(164, 252, 149, 0.2);
+}
+
+.result-item.error {
+    background-color: rgba(255, 102, 102, 0.2);
+}
+
+.result-icon {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.result-item.success .result-icon {
+    color: #28a745;
+}
+
+.result-item.error .result-icon {
+    color: #dc3545;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
-    .container {
+    .content-container {
         flex-direction: column;
     }
     
-    .sidebar {
+    .left-panel,
+    .right-panel {
         width: 100%;
-        height: auto;
-        position: static;
-        display: none;
+        height: 50%;
     }
     
-    .sidebar.mobile-open {
-        display: block;
-    }
-    
-    .main-content {
-        max-width: 100%;
-    }
-    
-    .mobile-menu-toggle {
-        display: block;
-    }
-    
-    .editor-preview-container {
+    .editor-preview-area {
         flex-direction: column;
-        height: auto;
     }
     
-    .editor-container, .preview-container {
-        min-width: 100%;
-        height: 300px;
+    .editor-container {
+        height: 200px;
+    }
+    
+    .preview-container {
+        height: 150px;
     }
 }

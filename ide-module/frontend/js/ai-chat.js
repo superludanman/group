@@ -1,21 +1,19 @@
 /**
- * AI对话功能
+ * 修改建议 AI对话功能
  */
 document.addEventListener('DOMContentLoaded', function() {
     // AI聊天状态
     const chatState = {
-        isExpanded: true,
         messages: [],
         isWaitingForResponse: false,
         backendUrl: 'http://localhost:8080' // 后端API地址，根据实际情况修改
     };
 
     // DOM元素
-    const chatContainer = document.querySelector('.ai-chat-container');
+    const suggestionsContainer = document.querySelector('.suggestions-container');
     const chatMessages = document.getElementById('ai-chat-messages');
     const userMessageInput = document.getElementById('user-message');
     const sendMessageButton = document.getElementById('send-message');
-    const toggleChatButton = document.getElementById('toggle-chat');
 
     // 初始化事件监听
     initChatEvents();
@@ -33,14 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 sendUserMessage();
             }
-        });
-
-        // 展开/收起聊天窗口按钮事件
-        toggleChatButton.addEventListener('click', function() {
-            chatState.isExpanded = !chatState.isExpanded;
-            chatMessages.style.display = chatState.isExpanded ? 'block' : 'none';
-            document.querySelector('.ai-chat-input').style.display = chatState.isExpanded ? 'flex' : 'none';
-            this.textContent = chatState.isExpanded ? '收起' : '展开';
         });
     }
 
@@ -131,22 +121,22 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             let response, suggestions;
 
-            // 简单的关键词匹配
+            // 简单的关键词匹配，现在的内容更加偏向代码修改建议
             if (userMessage.toLowerCase().includes('html')) {
-                response = "HTML是构建网页的标准标记语言。通过各种标签，你可以定义页面的结构。例如，你可以使用<div>创建容器，使用<p>创建段落，或使用<h1>到<h6>创建标题。";
-                suggestions = ["怎么创建链接？", "如何添加图片？", "表格怎么制作？"];
+                response = "你的HTML结构看起来不错，但是我有几点建议来提高可读性和语义化。考虑使用更多的语义化标签，例如用<section>来包裹相关内容，用<nav>来包裹导航链接。";
+                suggestions = ["添加标题元素提高SEO", "改进表单的访问性", "优化图片标签的alt属性"];
             } else if (userMessage.toLowerCase().includes('css')) {
-                response = "CSS（层叠样式表）用于设置HTML元素的样式。你可以使用类选择器（.class）、ID选择器（#id）或元素选择器（如p, div）来应用样式。CSS可以控制颜色、字体、间距、布局等。";
-                suggestions = ["如何居中元素？", "什么是Flexbox？", "CSS动画怎么做？"];
+                response = "你的CSS可以通过使用变量来提高可维护性。我建议将重复的颜色值和间距值提取为变量，并考虑使用CSS Grid或Flexbox来简化你的布局。";
+                suggestions = ["使用响应式单位提高适配性", "优化选择器提高性能", "添加过渡效果提升用户体验"];
             } else if (userMessage.toLowerCase().includes('javascript') || userMessage.toLowerCase().includes('js')) {
-                response = "JavaScript是一种编程语言，使网页具有交互性。你可以使用JavaScript来响应用户操作、动态修改页面内容、发送网络请求等。";
-                suggestions = ["如何选择DOM元素？", "事件监听怎么写？", "怎么处理表单提交？"];
+                response = "你的JavaScript代码可以通过以下方式改进：1) 使用现代ES6+语法，如箭头函数和解构赋值；2) 将特定功能封装成函数；3) 使用事件委托来减少事件监听器。";
+                suggestions = ["使用Promise替代回调函数", "采用模块化组织代码", "优化DOM操作提高性能"];
             } else if (userMessage.toLowerCase().includes('错误') || userMessage.toLowerCase().includes('error')) {
-                response = "调试代码是编程过程中的重要部分。你可以使用浏览器的开发者工具来查看JavaScript错误，或者使用console.log()来打印变量值帮助调试。";
-                suggestions = ["常见的HTML错误有哪些？", "怎么修复CSS不生效的问题？", "JavaScript语法错误怎么解决？"];
+                response = "我在你的代码中发现了一些问题：1) 缺少闭合标签，请检查HTML标签是否配对；2) CSS选择器可能存在拼写错误；3) JavaScript中可能存在变量未定义就使用的情况。";
+                suggestions = ["修复HTML结构错误", "修正CSS选择器问题", "解决JavaScript变量作用域问题"];
             } else {
-                response = "我是你的AI助手，可以帮助你学习HTML、CSS和JavaScript。请告诉我你想了解什么，或者如果你遇到了代码问题，可以详细描述一下。";
-                suggestions = ["HTML基础知识", "CSS布局技巧", "JavaScript交互功能"];
+                response = "我已经分析了你的代码，有几点优化建议：1) 使用语义化标签提高可读性；2) 采用CSS变量管理样式；3) 采用事件委托优化事件处理；4) 添加适当的注释提高代码可维护性。";
+                suggestions = ["如何提高代码可读性？", "响应式设计最佳实践", "如何优化页面加载速度？"];
             }
 
             // 添加AI响应到聊天窗口
@@ -162,13 +152,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // 实际的AI API调用（实际项目中使用）
     async function callAIAPI(message) {
         try {
-            const response = await fetch(`${chatState.backendUrl}/ai/chat`, {
+            const response = await fetch(`${chatState.backendUrl}/ai/suggestions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    message: message
+                    message: message,
+                    code: {
+                        html: typeof editorState !== 'undefined' ? editorState.html : '',
+                        css: typeof editorState !== 'undefined' ? editorState.css : '',
+                        js: typeof editorState !== 'undefined' ? editorState.js : ''
+                    }
                 })
             });
 
@@ -182,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('AI API调用出错：', error);
             return {
                 status: 'error',
-                reply: '抱歉，AI助手暂时无法响应，请稍后再试。',
+                reply: '抱歉，修改建议生成失败，请稍后再试。',
                 suggestions: []
             };
         }

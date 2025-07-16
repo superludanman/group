@@ -171,6 +171,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.add('active');
                 
                 // 更新编辑器内容和语言
+                // 首先隐藏所有内容区域
+                document.querySelectorAll('.editor-container').forEach(container => {
+                    container.style.display = 'none';
+                });
+                
+                // 预览标签页的处理
+                if (tab === 'preview') {
+                    // 显示预览区域
+                    document.getElementById('editor-preview').style.display = 'flex';
+                    // 刷新预览
+                    updateLocalPreview();
+                    return;
+                }
+                
+                // 显示当前选中的编辑器
+                document.getElementById('editor-' + tab).style.display = 'block';
+                
                 if (editor) {
                     const model = editor.getModel();
                     monaco.editor.setModelLanguage(model, tab);
@@ -218,19 +235,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化按钮事件
     function initButtons() {
-        // 运行按钮
+        // 测试按钮
         document.getElementById('run-button').addEventListener('click', function() {
             runCodeOnBackend();
+            // 测试完成后显示测试结果
+            setTimeout(showTestResults, 1000);
         });
 
+        // 预览按钮 (如果存在)
+        const previewButton = document.getElementById('preview-button');
+        if (previewButton) {
+            previewButton.addEventListener('click', function() {
+                updateLocalPreview();
+            });
+        }
+        
         // 刷新预览按钮
         document.getElementById('refresh-preview').addEventListener('click', function() {
             updateLocalPreview();
         });
 
-        // 重置按钮
+        // 提交按钮 (原重置按钮)
         document.getElementById('reset-button').addEventListener('click', function() {
-            if (confirm('确定要重置编辑器吗？所有更改将丢失。')) {
+            if (confirm('确定要提交当前代码吗？')) {
+                // 这里可以添加代码提交功能
+                // 暂时保留原来的重置功能
                 resetEditor();
             }
         });
