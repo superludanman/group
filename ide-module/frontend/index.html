@@ -143,16 +143,43 @@
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs/editor/editor.main.nls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.33.0/min/vs/editor/editor.main.js"></script>
     
-    <!-- Markdown解析库 -->
-    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
-    <!-- 代码高亮库 -->
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/highlight.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/javascript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/css.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/html.min.js"></script>
+    <!-- Markdown解析库（更新到最新版本）-->
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+    <!-- 代码高亮库（更新到最新版本）-->
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/languages/css.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/languages/html.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/languages/markdown.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/languages/bash.min.js"></script>
     
     <!-- AI聊天连接功能 -->
     <script>
+    // 初始化marked库配置
+    document.addEventListener('DOMContentLoaded', function() {
+        // 如果marked存在，配置markdown解析器
+        if (typeof marked !== 'undefined') {
+            marked.use({
+                gfm: true, // 启用GitHub风格的Markdown
+                breaks: true, // 启用换行符号渲染为<br>
+                headerIds: true, // 生成标题ID
+                mangle: false, // 不修改标题ID
+                pedantic: false, // 不羁竞严格的兼容性
+                smartLists: true, // 智能列表
+                smartypants: false, // 不转换引号、破折号等
+                xhtml: false, // 不生成自闭合的空标签
+                langPrefix: 'hljs language-', // 语言前缀，用于代码高亮
+                highlight: function(code, lang) {
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    return hljs.highlight(code, { language }).value;
+                }
+            });
+            console.log('Marked.js配置完成');
+        } else {
+            console.error('Marked.js未加载');
+        }
+    });
+    
     // 定义全局配置
     window.aiChatConfig = {
         backendUrl: 'http://localhost:8080',
