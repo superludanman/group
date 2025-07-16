@@ -19,6 +19,11 @@ load_dotenv()
 from docker_manager import get_docker_manager
 from code_executor import get_code_executor, CodeSubmission
 
+# 导入AI功能相关模块
+from student_model import get_student_model_service
+from prompt_generator import get_prompt_generator
+from ai_service import get_ai_service
+
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("API")
@@ -37,8 +42,21 @@ app.add_middleware(
 class AIMessage(BaseModel):
     """AI聊天消息模型"""
     message: str
-    code: Optional[str] = None
+    code: Optional[Dict[str, str]] = None
     session_id: Optional[str] = None
+
+
+class CodeError(BaseModel):
+    """代码错误模型"""
+    code: Dict[str, str]
+    error_info: Dict[str, Any]
+    session_id: Optional[str] = None
+
+
+class BehaviorData(BaseModel):
+    """用户行为数据模型"""
+    session_id: str
+    data: Dict[str, Any]
 
 
 @app.on_event("startup")
@@ -50,6 +68,12 @@ async def startup_event():
     try:
         get_docker_manager()
         get_code_executor()
+        
+        # 初始化AI服务相关组件
+        get_student_model_service()
+        get_prompt_generator()
+        get_ai_service()
+        
         logger.info("Services initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing services: {str(e)}")
@@ -66,6 +90,11 @@ async def shutdown_event():
     try:
         code_executor = get_code_executor()
         await code_executor.shutdown()
+        
+        # 关闭AI服务
+        ai_service = get_ai_service()
+        await ai_service.close()
+        
         logger.info("Services shutdown complete")
     except Exception as e:
         logger.error(f"Error shutting down services: {str(e)}")
@@ -120,17 +149,99 @@ async def static_check(code: CodeSubmission):
 @app.post("/ai/chat")
 async def ai_chat(message: AIMessage):
     """
-    与AI助手聊天的接口 (占位，需要后续集成实际的AI API)
+    与AI助手聊天的接口
     """
     try:
-        # 此处为占位实现，后续需集成到实际的AI API
-        return {
-            "status": "success",
-            "reply": "这是一个AI助手回复的占位文本。请在后续开发中集成实际的AI API。",
-            "suggestions": ["尝试修复HTML结构", "检查CSS语法", "添加事件监听器"]
-        }
+        # 获取必要的服务
+        student_model_service = get_student_model_service()
+        ai_service = get_ai_service()
+        
+        # 生成或获取会话ID
+        session_id = message.session_id or "default_session"
+        
+        # 获取学习者模型摘要
+        student_model = student_model_service.get_model(session_id)
+        model_summary = student_model_service.get_model_summary(session_id)
+        
+        # 获取AI响应
+        response = await ai_service.get_ai_response(
+            student_model_summary=model_summary,
+            user_message=message.message,
+            code_context=message.code
+        )
+        
+        return response
     except Exception as e:
         logger.error(f"Error in AI chat: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ai/error-feedback")
+async def ai_error_feedback(error_data: CodeError):
+    """
+    获取AI对代码错误的反馈
+    """
+    try:
+        # 获取必要的服务
+        student_model_service = get_student_model_service()
+        ai_service = get_ai_service()
+        
+        # 生成或获取会话ID
+        session_id = error_data.session_id or "default_session"
+        
+        # 获取学习者模型摘要
+        student_model = student_model_service.get_model(session_id)
+        model_summary = student_model_service.get_model_summary(session_id)
+        
+        # 获取AI错误反馈
+        response = await ai_service.get_error_feedback(
+            student_model_summary=model_summary,
+            code_context=error_data.code,
+            error_info=error_data.error_info
+        )
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error in AI error feedback: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/student/update")
+async def update_student_model(behavior_data: BehaviorData):
+    """
+    更新学习者模型
+    """
+    try:
+        # 获取学习者模型服务
+        student_model_service = get_student_model_service()
+        
+        # 更新学习者模型
+        student_model_service.update_from_behavior(
+            student_id=behavior_data.session_id,
+            behavior_data=behavior_data.data
+        )
+        
+        return {"status": "success", "message": f"Student model updated for session {behavior_data.session_id}"}
+    except Exception as e:
+        logger.error(f"Error updating student model: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/student/{session_id}")
+async def get_student_model(session_id: str):
+    """
+    获取学习者模型摘要
+    """
+    try:
+        # 获取学习者模型服务
+        student_model_service = get_student_model_service()
+        
+        # 获取学习者模型摘要
+        model_summary = student_model_service.get_model_summary(session_id)
+        
+        return {"status": "success", "student_model": model_summary}
+    except Exception as e:
+        logger.error(f"Error getting student model: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

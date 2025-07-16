@@ -6,7 +6,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatState = {
         messages: [],
         isWaitingForResponse: false,
-        backendUrl: 'http://localhost:8080' // 后端API地址，根据实际情况修改
+        backendUrl: 'http://localhost:8080', // 后端API地址，根据实际情况修改
+        sessionId: generateSessionId(), // 会话ID，用于跟踪学习者状态
+        userBehavior: {
+            lastActivity: Date.now(),
+            activityLog: [], // 用户活动日志
+            typingSpeed: 0, // 打字速度（字符/分钟）
+            errorRate: 0, // 错误率
+            focusTime: 0, // 专注时间（毫秒）
+            idleTime: 0, // 空闲时间（毫秒）
+            interactionTypes: {}, // 互动类型计数（如代码示例点击、解释点击等）
+        }
     };
 
     // DOM元素
@@ -17,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化事件监听
     initChatEvents();
+    
+    // 初始化用户行为跟踪
+    initUserBehaviorTracking();
 
     // 初始化聊天界面
     function initChatEvents() {
@@ -50,8 +63,11 @@ document.addEventListener('DOMContentLoaded', function() {
         sendMessageButton.disabled = true;
         sendMessageButton.textContent = '等待中...';
 
-        // 模拟API请求（实际应该调用后端API）
-        mockAIResponse(message);
+        // 记录用户行为 - 发送消息
+        logUserActivity('send_message', { message_length: message.length });
+
+        // 调用AI API
+        callAIAPI(message);
     }
 
     // 添加用户消息到聊天窗口
@@ -115,74 +131,253 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 模拟AI响应（实际项目中应替换为真实API调用）
-    function mockAIResponse(userMessage) {
-        // 模拟网络延迟
-        setTimeout(() => {
-            let response, suggestions;
-
-            // 简单的关键词匹配，现在的内容更加偏向代码修改建议
-            if (userMessage.toLowerCase().includes('html')) {
-                response = "你的HTML结构看起来不错，但是我有几点建议来提高可读性和语义化。考虑使用更多的语义化标签，例如用<section>来包裹相关内容，用<nav>来包裹导航链接。";
-                suggestions = ["添加标题元素提高SEO", "改进表单的访问性", "优化图片标签的alt属性"];
-            } else if (userMessage.toLowerCase().includes('css')) {
-                response = "你的CSS可以通过使用变量来提高可维护性。我建议将重复的颜色值和间距值提取为变量，并考虑使用CSS Grid或Flexbox来简化你的布局。";
-                suggestions = ["使用响应式单位提高适配性", "优化选择器提高性能", "添加过渡效果提升用户体验"];
-            } else if (userMessage.toLowerCase().includes('javascript') || userMessage.toLowerCase().includes('js')) {
-                response = "你的JavaScript代码可以通过以下方式改进：1) 使用现代ES6+语法，如箭头函数和解构赋值；2) 将特定功能封装成函数；3) 使用事件委托来减少事件监听器。";
-                suggestions = ["使用Promise替代回调函数", "采用模块化组织代码", "优化DOM操作提高性能"];
-            } else if (userMessage.toLowerCase().includes('错误') || userMessage.toLowerCase().includes('error')) {
-                response = "我在你的代码中发现了一些问题：1) 缺少闭合标签，请检查HTML标签是否配对；2) CSS选择器可能存在拼写错误；3) JavaScript中可能存在变量未定义就使用的情况。";
-                suggestions = ["修复HTML结构错误", "修正CSS选择器问题", "解决JavaScript变量作用域问题"];
-            } else {
-                response = "我已经分析了你的代码，有几点优化建议：1) 使用语义化标签提高可读性；2) 采用CSS变量管理样式；3) 采用事件委托优化事件处理；4) 添加适当的注释提高代码可维护性。";
-                suggestions = ["如何提高代码可读性？", "响应式设计最佳实践", "如何优化页面加载速度？"];
-            }
-
-            // 添加AI响应到聊天窗口
-            addAIMessage(response, suggestions);
-
-            // 重置等待状态
-            chatState.isWaitingForResponse = false;
-            sendMessageButton.disabled = false;
-            sendMessageButton.textContent = '发送';
-        }, 1000);
-    }
-
-    // 实际的AI API调用（实际项目中使用）
+    
+    // 实际的AI API调用
     async function callAIAPI(message) {
         try {
-            const response = await fetch(`${chatState.backendUrl}/ai/suggestions`, {
+            // 获取当前代码状态
+            const codeState = {
+                html: typeof editorState !== 'undefined' ? editorState.html : '',
+                css: typeof editorState !== 'undefined' ? editorState.css : '',
+                js: typeof editorState !== 'undefined' ? editorState.js : ''
+            };
+            
+            // 发送API请求
+            const response = await fetch(`${chatState.backendUrl}/ai/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     message: message,
-                    code: {
-                        html: typeof editorState !== 'undefined' ? editorState.html : '',
-                        css: typeof editorState !== 'undefined' ? editorState.css : '',
-                        js: typeof editorState !== 'undefined' ? editorState.js : ''
-                    }
+                    code: codeState,
+                    session_id: chatState.sessionId
                 })
             });
 
             if (!response.ok) {
-                throw new Error('API请求失败');
+                throw new Error(`API请求失败: ${response.status}`);
             }
 
             const data = await response.json();
-            return data;
+            
+            if (data.status === 'success') {
+                // 添加AI响应到聊天窗口
+                addAIMessage(data.reply, data.suggestions || []);
+                
+                // 记录交互成功
+                logUserActivity('ai_response_received', { 
+                    success: true,
+                    response_time: data.response_time
+                });
+            } else {
+                // 处理错误
+                addAIMessage('抱歉，生成回复时出现问题，请稍后再试。', []);
+                console.error('AI API返回错误:', data.message);
+                
+                // 记录交互失败
+                logUserActivity('ai_response_error', { 
+                    error: data.message
+                });
+            }
+            
+            // 重置等待状态
+            chatState.isWaitingForResponse = false;
+            sendMessageButton.disabled = false;
+            sendMessageButton.textContent = '发送';
+            
         } catch (error) {
             console.error('AI API调用出错：', error);
-            return {
-                status: 'error',
-                reply: '抱歉，修改建议生成失败，请稍后再试。',
-                suggestions: []
-            };
+            
+            // 添加错误消息
+            addAIMessage('抱歉，连接AI服务时出现问题，请检查网络连接或稍后再试。', []);
+            
+            // 记录错误
+            logUserActivity('ai_connection_error', { 
+                error_message: error.message 
+            });
+            
+            // 重置等待状态
+            chatState.isWaitingForResponse = false;
+            sendMessageButton.disabled = false;
+            sendMessageButton.textContent = '发送';
         }
     }
 
+    // 生成会话ID
+    function generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    // 初始化用户行为跟踪
+    function initUserBehaviorTracking() {
+        // 活动检测 - 记录用户最后活动时间
+        document.addEventListener('mousemove', updateLastActivity);
+        document.addEventListener('keypress', updateLastActivity);
+        document.addEventListener('click', updateLastActivity);
+        
+        // 编辑器交互跟踪
+        if (typeof editor !== 'undefined') {
+            editor.onDidChangeModelContent(trackEditing);
+        }
+        if (typeof editorCSS !== 'undefined') {
+            editorCSS.onDidChangeModelContent(trackEditing);
+        }
+        if (typeof editorJS !== 'undefined') {
+            editorJS.onDidChangeModelContent(trackEditing);
+        }
+        
+        // 定期发送用户行为数据到服务器
+        setInterval(sendUserBehaviorData, 30000); // 每30秒发送一次
+        
+        console.log('用户行为跟踪已初始化');
+    }
+    
+    // 更新最后活动时间
+    function updateLastActivity() {
+        const now = Date.now();
+        
+        // 计算空闲时间
+        if (chatState.userBehavior.lastActivity > 0) {
+            const idleTime = now - chatState.userBehavior.lastActivity;
+            chatState.userBehavior.idleTime += idleTime;
+            
+            // 如果空闲时间超过10秒，记录为专注度下降
+            if (idleTime > 10000) {
+                logUserActivity('focus_drop', { idle_time: idleTime });
+            }
+        }
+        
+        chatState.userBehavior.lastActivity = now;
+    }
+    
+    // 跟踪编辑行为
+    function trackEditing(event) {
+        logUserActivity('code_edit', {
+            changes: event.changes.length,
+            time: Date.now()
+        });
+    }
+    
+    // 记录用户活动
+    function logUserActivity(activityType, data = {}) {
+        const activity = {
+            type: activityType,
+            timestamp: Date.now(),
+            data: data
+        };
+        
+        // 添加到活动日志
+        chatState.userBehavior.activityLog.push(activity);
+        
+        // 限制日志大小
+        if (chatState.userBehavior.activityLog.length > 100) {
+            chatState.userBehavior.activityLog.shift(); // 移除最旧的记录
+        }
+        
+        // 更新交互类型计数
+        if (activityType.startsWith('interaction_')) {
+            const interactionType = activityType.replace('interaction_', '');
+            if (!chatState.userBehavior.interactionTypes[interactionType]) {
+                chatState.userBehavior.interactionTypes[interactionType] = 0;
+            }
+            chatState.userBehavior.interactionTypes[interactionType]++;
+        }
+        
+        // 更新最后活动时间
+        chatState.userBehavior.lastActivity = Date.now();
+    }
+    
+    // 发送用户行为数据到服务器
+    async function sendUserBehaviorData() {
+        // 如果活动日志为空，不发送
+        if (chatState.userBehavior.activityLog.length === 0) return;
+        
+        try {
+            // 准备发送的数据
+            const behaviorData = {
+                session_id: chatState.sessionId,
+                data: {
+                    activity_log: chatState.userBehavior.activityLog,
+                    typing_speed: chatState.userBehavior.typingSpeed,
+                    error_rate: chatState.userBehavior.errorRate,
+                    focus_time: Date.now() - chatState.userBehavior.lastActivity,
+                    idle_time: chatState.userBehavior.idleTime,
+                    interaction_types: chatState.userBehavior.interactionTypes
+                }
+            };
+            
+            // 发送数据
+            const response = await fetch(`${chatState.backendUrl}/student/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(behaviorData)
+            });
+            
+            if (response.ok) {
+                // 清空活动日志
+                chatState.userBehavior.activityLog = [];
+                console.log('用户行为数据已发送');
+            } else {
+                console.error('发送用户行为数据失败:', response.status);
+            }
+        } catch (error) {
+            console.error('发送用户行为数据出错:', error);
+        }
+    }
+    
+    // 提交代码并获取错误反馈
+    async function submitCodeForFeedback(errorInfo) {
+        try {
+            // 获取当前代码状态
+            const codeState = {
+                html: typeof editorState !== 'undefined' ? editorState.html : '',
+                css: typeof editorState !== 'undefined' ? editorState.css : '',
+                js: typeof editorState !== 'undefined' ? editorState.js : ''
+            };
+            
+            // 发送API请求
+            const response = await fetch(`${chatState.backendUrl}/ai/error-feedback`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    code: codeState,
+                    error_info: errorInfo,
+                    session_id: chatState.sessionId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // 添加AI错误反馈到聊天窗口
+                addAIMessage(data.feedback, ["尝试修复错误", "查看更多相关内容"]);
+                
+                // 记录交互成功
+                logUserActivity('error_feedback_received', { 
+                    success: true,
+                    response_time: data.response_time
+                });
+            } else {
+                // 处理错误
+                addAIMessage('抱歉，生成错误反馈时出现问题，请稍后再试。', []);
+                console.error('错误反馈API返回错误:', data.message);
+            }
+            
+        } catch (error) {
+            console.error('错误反馈API调用出错：', error);
+            addAIMessage('抱歉，获取错误反馈时出现问题，请检查网络连接或稍后再试。', []);
+        }
+    }
+    
     // HTML转义函数，防止XSS攻击
     function escapeHtml(unsafe) {
         return unsafe
@@ -192,4 +387,18 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
+    
+    // 为编辑器和测试结果面板添加事件，监听代码运行和错误
+    if (document.getElementById('run-button')) {
+        document.getElementById('run-button').addEventListener('click', function() {
+            logUserActivity('code_run', { timestamp: Date.now() });
+        });
+    }
+    
+    // 导出功能供其他模块使用
+    window.AIChat = {
+        submitCodeForFeedback: submitCodeForFeedback,
+        addAIMessage: addAIMessage,
+        logUserActivity: logUserActivity
+    };
 });
