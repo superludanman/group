@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 编辑器实例
     let editor = null;
+    let editorCSS = null;
+    let editorJS = null;
 
     // 初始化Monaco编辑器
     require(['vs/editor/editor.main'], function() {
@@ -103,10 +105,67 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // 创建编辑器实例
+        // 创建各个编辑器实例
+        // HTML 编辑器
         editor = monaco.editor.create(document.getElementById('monaco-editor'), {
             value: editorState.html,
             language: 'html',
+            theme: 'myCustomTheme',
+            automaticLayout: true,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            renderLineHighlight: 'all',
+            renderWhitespace: 'none',
+            lineNumbers: 'on',
+            tabSize: 2,
+            formatOnPaste: true,
+            formatOnType: true,
+            autoIndent: 'full',
+            semanticHighlighting: true,
+            suggestOnTriggerCharacters: true,
+            acceptSuggestionOnCommitCharacter: true,
+            wordBasedSuggestions: true,
+            parameterHints: { enabled: true },
+            folding: true,
+            renderValidationDecorations: 'on',
+            fontSize: 14,
+            fontFamily: "'Fira Code', Consolas, 'Courier New', monospace",
+            fontLigatures: true,
+            cursorBlinking: 'smooth'
+        });
+        
+        // CSS 编辑器
+        editorCSS = monaco.editor.create(document.getElementById('monaco-editor-css'), {
+            value: editorState.css,
+            language: 'css',
+            theme: 'myCustomTheme',
+            automaticLayout: true,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            renderLineHighlight: 'all',
+            renderWhitespace: 'none',
+            lineNumbers: 'on',
+            tabSize: 2,
+            formatOnPaste: true,
+            formatOnType: true,
+            autoIndent: 'full',
+            semanticHighlighting: true,
+            suggestOnTriggerCharacters: true,
+            acceptSuggestionOnCommitCharacter: true,
+            wordBasedSuggestions: true,
+            parameterHints: { enabled: true },
+            folding: true,
+            renderValidationDecorations: 'on',
+            fontSize: 14,
+            fontFamily: "'Fira Code', Consolas, 'Courier New', monospace",
+            fontLigatures: true,
+            cursorBlinking: 'smooth'
+        });
+        
+        // JavaScript 编辑器
+        editorJS = monaco.editor.create(document.getElementById('monaco-editor-js'), {
+            value: editorState.js,
+            language: 'javascript',
             theme: 'myCustomTheme',
             automaticLayout: true,
             minimap: { enabled: false },
@@ -134,7 +193,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // 监听编辑器内容变化
         editor.onDidChangeModelContent(function(e) {
             // 保存当前编辑器内容到状态
-            editorState[editorState.activeTab] = editor.getValue();
+            editorState.html = editor.getValue();
+        });
+        
+        editorCSS.onDidChangeModelContent(function(e) {
+            // 保存当前编辑器内容到状态
+            editorState.css = editorCSS.getValue();
+        });
+        
+        editorJS.onDidChangeModelContent(function(e) {
+            // 保存当前编辑器内容到状态
+            editorState.js = editorJS.getValue();
             
             // 添加防抖，避免频繁请求
             clearTimeout(window.staticCheckTimer);
@@ -154,23 +223,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function initEditorTabs() {
         const tabButtons = document.querySelectorAll('.tab-button');
         
+        // 确保默认标签是激活的
+        const defaultTab = 'html';
+        document.getElementById('editor-' + defaultTab).style.display = 'block';
+        
         tabButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const tab = this.getAttribute('data-tab');
-                
-                // 保存当前编辑器内容
-                if (editor) {
-                    editorState[editorState.activeTab] = editor.getValue();
-                }
-                
-                // 更新活动标签
-                editorState.activeTab = tab;
+                console.log('切换到标签：', tab);
                 
                 // 更新标签按钮状态
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 this.classList.add('active');
                 
-                // 更新编辑器内容和语言
                 // 首先隐藏所有内容区域
                 document.querySelectorAll('.editor-container').forEach(container => {
                     container.style.display = 'none';
@@ -185,49 +250,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // 显示当前选中的编辑器
-                document.getElementById('editor-' + tab).style.display = 'block';
+                // 显示当前选中的编辑器容器
+                const editorContainer = document.getElementById('editor-' + tab);
+                if (editorContainer) {
+                    editorContainer.style.display = 'block';
+                    console.log('显示编辑器容器：', 'editor-' + tab);
+                } else {
+                    console.error('找不到编辑器容器：', 'editor-' + tab);
+                }
                 
-                if (editor) {
-                    const model = editor.getModel();
-                    monaco.editor.setModelLanguage(model, tab);
-                    editor.setValue(editorState[tab]);
-                    
-                    // 如果是JS标签页，启用特定的JS检查和格式化
-                    if (tab === 'js') {
-                        // 重新配置编辑器，使用全功能JS模式
-                        const oldModel = editor.getModel();
-                        const newModel = monaco.editor.createModel(editorState[tab], 'javascript');
-                        editor.setModel(newModel);
-                        oldModel.dispose(); // 处理旧模型以避免内存泄漏
-                        
-                        // 启用编辑器的JS语法高亮和检查
-                        monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-                            noSemanticValidation: false,
-                            noSyntaxValidation: false,
-                            diagnosticCodesToIgnore: [1005, 1068, 1109]
-                        });
-                        
-                        // 配置编辑器选项
-                        editor.updateOptions({
-                            suggestOnTriggerCharacters: true,
-                            wordBasedSuggestions: true,
-                            snippetSuggestions: 'inline',
-                            suggest: {
-                                showFunctions: true,
-                                showVariables: true,
-                                showClasses: true,
-                                showWords: true,
-                                showMethods: true,
-                                showProperties: true
-                            }
-                        });
-                        
-                        // 如果编辑器已有内容，执行立即检查
-                        if (editorState[tab] && editorState[tab].trim().length > 0) {
-                            setTimeout(performStaticCheck, 300);
-                        }
-                    }
+                // 将当前标签页保存到状态
+                editorState.activeTab = tab;
+                
+                // 强制重新布局以确保编辑器正确显示
+                if (tab === 'html' && editor) {
+                    setTimeout(() => editor.layout(), 10);
+                } else if (tab === 'css' && editorCSS) {
+                    setTimeout(() => editorCSS.layout(), 10);
+                } else if (tab === 'js' && editorJS) {
+                    setTimeout(() => editorJS.layout(), 10);
                 }
             });
         });
