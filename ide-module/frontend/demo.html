@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDE模块API演示</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #10a37f;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .sidebar {
+            width: 300px;
+            padding: 15px;
+            background-color: #f7f7f8;
+            border-radius: 5px;
+        }
+        .main {
+            flex: 1;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #10a37f;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 0;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0e906f;
+        }
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+            height: 80px;
+            font-family: inherit;
+        }
+        .group {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow: auto;
+            max-height: 200px;
+            font-size: 14px;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .success {
+            color: #2c7623;
+        }
+        .error {
+            color: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <h1>IDE模块API演示</h1>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="group">
+                <h3>测试要求管理</h3>
+                <textarea id="requirements-content" placeholder="在这里输入HTML格式的测试要求内容..."><div class="requirement-content">
+<p><strong>任务目标：</strong>创建一个简单的个人资料卡片。</p>
+<ol>
+    <li>创建一个HTML结构，包含标题、个人信息和技能列表</li>
+    <li>使用CSS添加样式，包括颜色、边框和间距</li>
+    <li>添加一个简单的JavaScript交互功能</li>
+</ol>
+</div></textarea>
+                <button id="update-requirements">更新测试要求</button>
+                <div id="requirements-status" class="status"></div>
+            </div>
+            
+            <div class="group">
+                <h3>测试结果管理</h3>
+                <textarea id="results-content" placeholder="在这里输入HTML格式的测试结果内容..."><div class="result-item success">
+    <span class="result-icon">✓</span>
+    <span class="result-message">HTML结构正确</span>
+</div>
+<div class="result-item error">
+    <span class="result-icon">✗</span>
+    <span class="result-message">缺少JavaScript交互功能</span>
+</div></textarea>
+                <button id="update-results">更新测试结果</button>
+                <div id="results-status" class="status"></div>
+            </div>
+            
+            <div class="group">
+                <h3>代码操作</h3>
+                <button id="get-code">获取当前代码</button>
+                <button id="set-code">设置示例代码</button>
+                <div id="code-status" class="status"></div>
+            </div>
+            
+            <pre id="code-output"></pre>
+        </div>
+        
+        <div class="main">
+            <iframe id="ide-frame" src="index.html"></iframe>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ideFrame = document.getElementById('ide-frame');
+            let ideReady = false;
+            
+            // 监听IDE就绪消息
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.action === 'ideReady') {
+                    console.log('IDE已就绪', event.data);
+                    ideReady = true;
+                    document.getElementById('code-status').textContent = 'IDE已就绪，可以开始操作';
+                    document.getElementById('code-status').className = 'status success';
+                }
+                
+                // 监听IDE返回的代码
+                if (event.data && event.data.action === 'getCodeResponse') {
+                    const codeOutput = document.getElementById('code-output');
+                    codeOutput.textContent = JSON.stringify(event.data.data, null, 2);
+                }
+            });
+            
+            // 更新测试要求
+            document.getElementById('update-requirements').addEventListener('click', function() {
+                if (!ideReady) {
+                    alert('IDE尚未就绪，请稍候');
+                    return;
+                }
+                
+                const content = document.getElementById('requirements-content').value;
+                ideFrame.contentWindow.postMessage({
+                    action: 'updateTestRequirements',
+                    data: {
+                        content: content
+                    }
+                }, '*');
+                
+                const status = document.getElementById('requirements-status');
+                status.textContent = '已发送测试要求更新请求';
+                status.className = 'status success';
+            });
+            
+            // 更新测试结果
+            document.getElementById('update-results').addEventListener('click', function() {
+                if (!ideReady) {
+                    alert('IDE尚未就绪，请稍候');
+                    return;
+                }
+                
+                const content = document.getElementById('results-content').value;
+                ideFrame.contentWindow.postMessage({
+                    action: 'updateTestResults',
+                    data: {
+                        content: content
+                    }
+                }, '*');
+                
+                const status = document.getElementById('results-status');
+                status.textContent = '已发送测试结果更新请求';
+                status.className = 'status success';
+            });
+            
+            // 获取代码
+            document.getElementById('get-code').addEventListener('click', function() {
+                if (!ideReady) {
+                    alert('IDE尚未就绪，请稍候');
+                    return;
+                }
+                
+                ideFrame.contentWindow.postMessage({
+                    action: 'getCode',
+                    data: {}
+                }, '*');
+                
+                const status = document.getElementById('code-status');
+                status.textContent = '已发送获取代码请求';
+                status.className = 'status success';
+            });
+            
+            // 设置示例代码
+            document.getElementById('set-code').addEventListener('click', function() {
+                if (!ideReady) {
+                    alert('IDE尚未就绪，请稍候');
+                    return;
+                }
+                
+                const sampleCode = {
+                    html: '<div class="profile-card">\n  <h1>个人资料</h1>\n  <div class="info">\n    <p><strong>姓名：</strong> 张三</p>\n    <p><strong>职业：</strong> 前端开发工程师</p>\n  </div>\n  <div class="skills">\n    <h2>技能</h2>\n    <ul id="skill-list">\n      <li>HTML</li>\n      <li>CSS</li>\n      <li>JavaScript</li>\n    </ul>\n    <button id="add-skill">添加技能</button>\n  </div>\n</div>',
+                    css: '.profile-card {\n  max-width: 400px;\n  margin: 20px auto;\n  padding: 20px;\n  border: 1px solid #ddd;\n  border-radius: 8px;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n  font-family: Arial, sans-serif;\n}\n\nh1 {\n  color: #10a37f;\n  border-bottom: 2px solid #eee;\n  padding-bottom: 10px;\n}\n\n.info {\n  margin: 15px 0;\n}\n\n.skills h2 {\n  margin-top: 15px;\n  color: #333;\n}\n\nul {\n  margin-bottom: 15px;\n}\n\nbutton {\n  background-color: #10a37f;\n  color: white;\n  border: none;\n  padding: 8px 12px;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background-color: #0e906f;\n}',
+                    js: 'document.getElementById("add-skill").addEventListener("click", function() {\n  const skillList = document.getElementById("skill-list");\n  const skills = ["React", "Vue", "Angular", "Node.js", "TypeScript"];\n  const randomSkill = skills[Math.floor(Math.random() * skills.length)];\n  \n  const listItem = document.createElement("li");\n  listItem.textContent = randomSkill;\n  skillList.appendChild(listItem);\n});'
+                };
+                
+                ideFrame.contentWindow.postMessage({
+                    action: 'setCode',
+                    data: sampleCode
+                }, '*');
+                
+                const status = document.getElementById('code-status');
+                status.textContent = '已发送设置代码请求';
+                status.className = 'status success';
+            });
+        });
+    </script>
+</body>
+</html>
