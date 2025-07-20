@@ -11,10 +11,14 @@ from typing import Dict, List, Any, Optional
 from analytics.improved_student_model import ImprovedStudentModel, ImprovedStudentModelService
 from analytics.bayesian_kt import get_adaptive_bkt_system, create_bkt_observation
 from analytics.ml_state_predictor import get_ml_state_predictor, FeatureVector
+from analytics.training_scheduler import TrainingScheduler
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SingleUserModel")
+
+# ---------------- 常量配置 ----------------
+CONFIDENCE_THRESHOLD = 0.6  # 低于该置信度时不采用ML预测结果
 
 
 class SingleUserLearningModel:
@@ -34,6 +38,9 @@ class SingleUserLearningModel:
         self.base_model_service = ImprovedStudentModelService()
         self.bkt_system = get_adaptive_bkt_system()
         self.ml_predictor = get_ml_state_predictor()
+        
+        # 调度器 - 负责保存与训练触发
+        self.scheduler = TrainingScheduler(save_interval_secs=60, train_sample_threshold=20, max_buffer_size=500)
         
         # 简化的状态缓存
         self.current_model = None
@@ -85,9 +92,13 @@ class SingleUserLearningModel:
             # 5. 更新时间戳
             self.last_update_time = time.time()
             
-            # 6. 保存数据（定期）
-            if self.last_update_time % 60 < 1:  # 大约每分钟保存一次
+            # 6. 调度器：持久化与增量训练
+            if self.scheduler.should_save():
                 self._save_persistent_data()
+                self.scheduler.mark_saved()
+            if self.scheduler.should_train(len(self.ml_predictor.training_data['features'])):
+                self.ml_predictor.train_models()
+                self.scheduler.trim_buffer(self.ml_predictor.training_data)
             
             logger.info("学习者模型更新完成")
             
@@ -267,14 +278,14 @@ class SingleUserLearningModel:
             # 认知负荷预测
             if 'cognitive_load' in ml_predictions:
                 cog_pred = ml_predictions['cognitive_load']
-                if cog_pred.confidence > 0.7:  # 高置信度才应用
+                if cog_pred.confidence >= CONFIDENCE_THRESHOLD:
                     model.cognitive_state.cognitive_load = cog_pred.prediction
                     model.cognitive_state.load_confidence = cog_pred.confidence
             
             # 困惑程度预测
             if 'confusion' in ml_predictions:
                 conf_pred = ml_predictions['confusion']
-                if conf_pred.confidence > 0.7:
+                if conf_pred.confidence >= CONFIDENCE_THRESHOLD:
                     confusion_score = conf_pred.prediction
                     model.cognitive_state.confusion_score = confusion_score
                     
@@ -335,9 +346,10 @@ class SingleUserLearningModel:
                 feature, cognitive_load, confusion_score, 0.7
             )
             
-            # 定期训练模型
-            if len(self.ml_predictor.training_data['features']) >= 20:
+            # 调度器判断是否训练
+            if self.scheduler.should_train(len(self.ml_predictor.training_data['features'])):
                 self.ml_predictor.train_models()
+                self.scheduler.trim_buffer(self.ml_predictor.training_data)
             
         except Exception as e:
             logger.error(f"添加ML训练样本失败: {e}")

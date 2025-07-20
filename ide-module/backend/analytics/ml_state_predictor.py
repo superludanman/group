@@ -12,7 +12,10 @@ import pickle
 import os
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass, asdict
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor  # 保留以兼容旧模型
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import mean_squared_error
@@ -208,12 +211,9 @@ class CognitiveLoadPredictor:
     
     def __init__(self):
         """初始化认知负荷预测器"""
-        self.model = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=10,
-            random_state=42,
-            class_weight='balanced'
-        )
+        base_clf = LogisticRegression(max_iter=1000, class_weight='balanced', solver='lbfgs')
+        # 概率校准，提升置信度质量
+        self.model = CalibratedClassifierCV(base_clf, method='sigmoid', cv=3)
         self.feature_engineer = FeatureEngineer(mode="classification")
         self.label_encoder = LabelEncoder()
         self.is_trained = False
@@ -283,10 +283,17 @@ class CognitiveLoadPredictor:
             prob_dict = {label: prob for label, prob in zip(class_labels, probabilities)}
             
             # 特征重要性
+            if hasattr(self.model, "feature_importances_"):
+                importance_values = self.model.feature_importances_
+            elif hasattr(self.model, "coef_"):
+                # 对于LogisticRegression，使用绝对值系数作为重要性
+                importance_values = np.abs(self.model.base_estimator_.coef_[0]) if hasattr(self.model, "base_estimator_") else np.abs(self.model.coef_[0])
+            else:
+                importance_values = []
             feature_importance = dict(zip(
                 self.feature_engineer.get_selected_features(),
-                self.model.feature_importances_
-            ))
+                importance_values
+            )) if len(importance_values) else None
             
             return PredictionResult(
                 prediction=predicted_label,
@@ -334,11 +341,7 @@ class ConfusionPredictor:
     
     def __init__(self):
         """初始化困惑程度预测器"""
-        self.model = RandomForestRegressor(
-            n_estimators=100,
-            max_depth=10,
-            random_state=42
-        )
+        self.model = GradientBoostingRegressor(n_estimators=200, max_depth=2, learning_rate=0.05, random_state=42)
         self.feature_engineer = FeatureEngineer(mode="regression")
         self.is_trained = False
         

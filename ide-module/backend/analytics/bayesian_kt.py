@@ -260,12 +260,26 @@ class BKTParameterEstimator:
                             method='L-BFGS-B', bounds=bounds)
             
             if result.success:
-                fitted_params = BKTParameters.from_array(result.x)
+                raw_params = BKTParameters.from_array(result.x)
+                # ---------- 分层贝叶斯收缩 ----------
+                n_obs = len(observations)
+                shrink_k = 5  # 控制收缩强度，值越大收缩越强
+                lam = n_obs / (n_obs + shrink_k)
+                global_prior = BKTParameters()  # 可替换为更可靠的群体先验
+                fitted_params = BKTParameters(
+                    P_L0=lam * raw_params.P_L0 + (1 - lam) * global_prior.P_L0,
+                    P_T=lam * raw_params.P_T + (1 - lam) * global_prior.P_T,
+                    P_G=lam * raw_params.P_G + (1 - lam) * global_prior.P_G,
+                    P_S=lam * raw_params.P_S + (1 - lam) * global_prior.P_S,
+                )
+                # ------------------------------------
+
                 self.fitted_params[knowledge_point_id] = fitted_params
                 
-                logger.info(f"成功拟合 {knowledge_point_id} 的BKT参数: "
-                           f"P(L0)={fitted_params.P_L0:.3f}, P(T)={fitted_params.P_T:.3f}, "
-                           f"P(G)={fitted_params.P_G:.3f}, P(S)={fitted_params.P_S:.3f}")
+                logger.info(
+                    f"成功拟合 {knowledge_point_id} 的BKT参数(收缩后): "
+                    f"P(L0)={fitted_params.P_L0:.3f}, P(T)={fitted_params.P_T:.3f}, "
+                    f"P(G)={fitted_params.P_G:.3f}, P(S)={fitted_params.P_S:.3f}")
                 
                 return fitted_params
             else:
