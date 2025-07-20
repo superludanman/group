@@ -31,7 +31,7 @@ class AIService:
         # 从环境变量获取API密钥和配置
         self.api_key = os.environ.get("OPENAI_API_KEY", "")
         self.api_base = os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1")
-        self.model = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
+        self.model = os.environ.get("OPENAI_MODEL", "gpt-4.1")
         self.max_tokens = int(os.environ.get("OPENAI_MAX_TOKENS", "1024"))
         self.temperature = float(os.environ.get("OPENAI_TEMPERATURE", "0.7"))
         

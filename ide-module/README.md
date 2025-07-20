@@ -1,26 +1,51 @@
-# IDE 模块
+# 智能学习系统 - IDE模块
 
-这是一个轻量级的Web IDE模块，用于HTML、CSS和JavaScript的在线编辑和预览。该模块设计为可独立运行，也可集成到主项目中，提供代码编辑、预览和测试功能。
+这是一个基于"人-LLM融合"理论的智能HTML学习系统，专为ACM CHI会议论文研究设计。系统通过实时行为分析、贝叶斯知识追踪和机器学习状态预测，为学习者提供个性化的编程教学体验。
 
-## 功能特点
+## 🎯 核心创新
 
+- **人-AI融合教学**: 基于控制理论的动态学习者建模
+- **实时行为追踪**: 监控代码编辑、暂停、错误等学习行为  
+- **贝叶斯知识追踪**: 使用MLE参数估计的真实BKT算法
+- **机器学习状态预测**: Random Forest模型预测认知负荷和困惑程度
+- **自适应出题系统**: 根据学习状态生成个性化测试题
+- **个性化学习建议**: 基于多维度数据提供智能指导
+- **学术研究支持**: 完整的离线评估系统，支持教育技术研究
+
+## 🚀 系统特色
+
+### v2.0 增强功能
+- **单用户深度优化**: 专门为单学习者场景设计的高精度模型
+- **多维度状态推理**: 实时评估认知负荷、困惑程度和专注度
+- **智能UI适配**: 根据学习状态动态调整界面和内容难度
+- **离线评估系统**: 为学术论文提供模型准确性验证
+- **RESTful API**: 完整的v2 API支持二次开发和研究
+
+### 传统功能
 - Monaco编辑器集成（与VS Code相同的编辑器引擎）
 - 多标签页编辑（HTML、CSS、JavaScript、预览）
 - 实时代码预览
 - 测试要求和测试结果显示
 - AI辅助修改建议
 - 响应式界面设计
-- 标准化API接口，方便与主项目集成
 
 ## 目录结构
 
 ```
 ide-module/
 ├── backend/                # 后端服务
+│   ├── analytics/          # 🆕 智能分析模块
+│   │   ├── behavior_logger.py    # 行为数据记录
+│   │   ├── bayesian_kt.py        # 贝叶斯知识追踪
+│   │   ├── ml_state_predictor.py # 机器学习状态预测
+│   │   ├── quiz_generator.py     # 自适应出题系统
+│   │   ├── single_user_model.py  # 单用户学习模型
+│   │   ├── api_integration.py    # API集成服务
+│   │   └── offline_evaluator.py  # 离线评估系统
 │   ├── Dockerfile          # 后端服务容器
 │   ├── docker_manager.py   # Docker容器管理
 │   ├── code_executor.py    # 代码执行服务
-│   ├── app.py              # FastAPI应用
+│   ├── app.py              # FastAPI应用（含v2 API）
 │   ├── requirements.txt    # 依赖项
 │   ├── start.sh            # 启动脚本
 │   ├── stop.sh             # 停止脚本
@@ -30,278 +55,413 @@ ide-module/
 │       └── entrypoint.sh    # 容器入口脚本
 ├── frontend/               # 前端静态文件
 │   ├── css/                # 样式文件
-│   │   └── styles.css      # 主样式表
+│   │   ├── styles.css      # 主样式表
+│   │   └── markdown.css    # 🆕 Markdown渲染样式
 │   ├── js/                 # JavaScript文件
 │   │   ├── editor.js       # Monaco编辑器配置
 │   │   ├── preview.js      # 代码预览功能
 │   │   ├── ai-chat.js      # AI对话功能
 │   │   ├── toggle-panels.js # 面板折叠功能
 │   │   ├── test-results.js  # 测试结果显示
-│   │   └── api-interface.js # 与主项目通信的API接口
-│   ├── index.html          # 主页面
+│   │   ├── api-interface.js # 与主项目通信的API接口
+│   │   └── smart-learning.js # 🆕 智能学习助手
+│   ├── index.html          # 主页面（已集成智能功能）
 │   └── demo.html           # API演示页面
-└── README.md               # 文档
+└── README.md               # 📖 详细使用教程
 ```
 
-## 安装和运行
+## 🚀 快速开始
 
-### 前提条件
+### 环境要求
 
-- Docker 已安装并正在运行（如需后端功能）
-- 现代浏览器（Chrome、Firefox、Edge等）
+- **Python 3.12+** (支持智能分析功能)
+- **Docker** (用于代码执行沙箱)
+- **现代浏览器** (Chrome、Firefox、Edge等)
 
-### 前端
+### 1. 依赖安装
 
-前端部分使用纯HTML、CSS和JavaScript编写，无需构建步骤。Monaco编辑器通过CDN加载。
+```bash
+# 进入后端目录
+cd ide-module/backend
 
-1. 直接在浏览器中打开`frontend/index.html`文件即可使用基本功能。
-2. 若要启用后端功能（如AI助手和代码执行），需要同时运行后端服务。
-3. 要查看API演示，可以打开`frontend/demo.html`。
+# 安装Python基础依赖
+pip install -r requirements.txt
 
-### 后端与Docker沙箱
+# 🆕 安装智能分析依赖
+pip install scikit-learn matplotlib seaborn numpy pandas
+```
 
-1. 配置环境变量：
+### 2. 启动系统
 
-   ```bash
-   cd backend
-   cp .env.example .env
-   # 根据需要编辑.env文件
-   ```
+```bash
+# 启动后端服务（包含智能分析API）
+python app.py
 
-2. 使用启动脚本运行服务：
+# 另开终端，启动前端服务
+cd ../frontend
+python -m http.server 3000
+```
 
-   ```bash
-   cd backend
-   
-   # 设置代理（如果需要）
-   export https_proxy=http://127.0.0.1:7897
-   export http_proxy=http://127.0.0.1:7897
-   
-   # 使脚本可执行
-   chmod +x start.sh stop.sh
-   
-   # 构建Docker镜像并启动服务
-   ./start.sh
-   ```
+系统启动后：
+- **后端API**: http://localhost:8080
+- **前端界面**: http://localhost:3000
+- **智能功能**: 自动激活，支持实时行为分析
 
-3. 停止服务：
+### 3. 验证安装
 
-   ```bash
-   cd backend
-   ./stop.sh
-   ```
+```bash
+# 检查v2 API状态
+curl http://localhost:8080/api/v2/info
 
-## API接口
+# 预期返回：智能分析功能列表和端点信息
+```
 
-### 后端 API
+## 📖 详细使用指南
 
-后端提供以下API接口：
+### 第一步：打开学习界面
 
-- `GET /` - 健康检查端点
-- `GET /containers` - 列出所有活动容器
-- `POST /execute` - 执行代码并返回结果
-- `POST /static-check` - 对代码进行静态检查
-- `POST /ai/chat` - 与AI助手聊天
-- `POST /cleanup/{session_id}` - 清理会话相关资源
+1. **访问系统**: 浏览器打开 `http://localhost:3000`
+2. **界面布局**:
+   - **左侧面板**: 测试要求、🧠智能助手、AI对话
+   - **右侧面板**: 代码编辑器（HTML/CSS/JS）和预览
+   - **智能功能**: 后台自动运行的行为分析
 
-### 前端 JavaScript API
+### 第二步：体验智能学习
 
-在前端，我们提供了一个标准化的JavaScript API接口，用于与主项目通信。所有API都通过`window.AICodeIDE.API`对象暴露。
+#### 2.1 代码编辑与行为追踪
 
-#### 初始化API
+```html
+<!-- 在HTML编辑器中输入以下代码 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>我的第一个智能学习页面</title>
+</head>
+<body>
+    <h1>欢迎使用智能学习系统!</h1>
+    <p>系统正在分析您的学习行为...</p>
+</body>
+</html>
+```
 
+**系统自动记录**:
+- ✅ 代码编辑模式（增删改）
+- ✅ 编辑停顿时间（检测困惑）
+- ✅ 语法错误检测和修复
+- ✅ 光标移动模式分析
+
+#### 2.2 智能状态监控
+
+在**🧠智能助手**面板中观察：
+
+```
+实时学习状态:
+├── 认知负荷: 中 ← 动态计算
+├── 专注度: 中   ← 行为推断  
+├── 知识水平: 1.0/5 ← BKT追踪
+└── 困惑程度: 无 ← ML预测
+```
+
+系统会根据您的编程行为实时更新状态！
+
+#### 2.3 自适应智能功能
+
+**智能出题**:
+1. 点击"生成测试题"
+2. 系统根据您的认知负荷自动调整难度
+3. 获得个性化的学习题目
+
+**智能建议**:
+- 认知负荷高时：推荐简单练习或休息
+- 困惑程度高时：提供额外帮助和示例
+- 学习顺利时：推荐更有挑战性的内容
+
+### 第三步：高级智能功能
+
+#### 3.1 贝叶斯知识追踪
+
+系统使用标准BKT模型跟踪每个知识点：
+
+```python
+# BKT核心参数
+P(L₀) = 0.1    # 初始掌握概率
+P(T) = 0.2     # 学习转移概率  
+P(G) = 0.25    # 猜测概率
+P(S) = 0.1     # 失误概率
+
+# 每次学习后更新掌握概率
+P(L_new) = P(L|evidence) + P(T) × (1 - P(L|evidence))
+```
+
+#### 3.2 机器学习状态预测
+
+系统使用Random Forest模型分析19维特征：
+
+**特征工程**:
+- 编辑频率和节奏
+- 错误率和修复时间  
+- 代码复杂度变化
+- 交互行为模式
+- 时间间隔分析
+
+**预测输出**:
+- 认知负荷等级 (low/medium/high)
+- 困惑程度分数 (0-1)
+- 学习状态置信度
+
+#### 3.3 学习进度深度分析
+
+点击"学习进度"查看完整分析：
+
+```
+📈 学习进度报告:
+├── 整体进度
+│   ├── 知识水平: 1.0/5
+│   ├── 模型置信度: 0.30
+│   └── 平均掌握度: 0.1 (BKT)
+├── 知识点分析
+│   ├── HTML基础: 需要练习 (掌握度 0.1)
+│   ├── CSS基础: 需要练习 (掌握度 0.1)  
+│   └── JS基础: 需要练习 (掌握度 0.1)
+└── 个性化建议
+    ├── 有7个知识点需要强化
+    └── 建议通过代码示例学习
+```
+
+## 🔧 API接口详解
+
+### v2 智能分析API
+
+系统提供完整的RESTful API支持研究和集成：
+
+#### 获取增强学习者模型
+```bash
+curl -X GET "http://localhost:8080/api/v2/student-model/main_student"
+
+# 返回完整的学习者状态，包含BKT分析和ML预测
+```
+
+#### 记录学习行为  
+```bash
+curl -X POST "http://localhost:8080/api/v2/behavior/log" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "student_id": "main_student",
+    "session_id": "session_001", 
+    "event_type": "code_edit",
+    "event_data": {
+      "code_before": "<div>Hello</div>",
+      "code_after": "<div>Hello World</div>",
+      "edit_length": 6,
+      "language": "html"
+    }
+  }'
+```
+
+#### 生成自适应测试题
+```bash
+curl -X POST "http://localhost:8080/api/v2/quiz/generate" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "student_id": "main_student",
+    "knowledge_points": ["html_basics"],
+    "num_questions": 2
+  }'
+
+# 返回基于学习状态的个性化题目
+```
+
+#### 获取学习进度分析
+```bash
+curl -X GET "http://localhost:8080/api/v2/learning/progress/main_student"
+
+# 返回BKT分析、ML状态、个性化建议等
+```
+
+### v1 传统API (向后兼容)
+
+传统的IDE功能API继续支持：
+
+- `GET /` - 健康检查
+- `POST /execute` - 代码执行
+- `POST /ai/chat` - AI对话
+- `POST /static-check` - 静态检查
+
+## 🎓 应用场景
+
+### 1. 个人自主学习
+
+**适用对象**: HTML/CSS/JavaScript初学者
+
+**学习流程**:
+1. 按教程完成基础练习
+2. 观察智能助手的实时反馈  
+3. 根据个性化建议调整学习策略
+4. 完成自适应测试验证掌握程度
+
+**智能化优势**:
+- 实时检测学习困惑，及时提供帮助
+- 根据认知负荷调整内容难度
+- 个性化学习路径推荐
+
+### 2. 教育研究实验
+
+**适用对象**: 教育技术研究者
+
+**实验设计**:
+```python
+# 对照实验设计
+对照组: 传统编程学习环境
+实验组: 智能自适应学习系统
+
+# 收集数据
+学习效果数据: 完成时间、准确率、知识掌握度
+行为数据: 编辑模式、错误模式、求助频率  
+用户体验: 满意度、认知负荷、学习偏好
+
+# 分析指标
+学习效率提升: 时间效率对比
+学习效果提升: 知识掌握对比
+用户体验提升: 满意度和认知负荷对比
+```
+
+**CHI论文支持**:
+- 完整的离线评估系统
+- 模型准确性验证数据
+- 统计显著性分析工具
+
+### 3. 智能教学系统集成
+
+**适用对象**: 在线教育平台
+
+**集成方式**:
 ```javascript
-AICodeIDE.API.initialize({
-    allowedOrigins: ['https://example.com'] // 允许的来源域名
+// iframe集成智能学习模块
+<iframe src="/ide-module/frontend/index.html"></iframe>
+
+// 监听学习状态变化
+window.addEventListener('message', function(event) {
+    if (event.data.action === 'learningStateUpdate') {
+        const { cognitiveLoad, confusionLevel } = event.data;
+        
+        // 根据状态调整教学策略
+        if (cognitiveLoad === 'high') {
+            showHelpSuggestion();
+        }
+    }
 });
 ```
 
-#### 更新测试要求
+## 📊 学术研究功能
 
-```javascript
-// 直接在JavaScript中调用
-AICodeIDE.API.updateTestRequirements('<div>新的测试要求内容</div>');
+### 离线评估系统
 
-// 或通过跨窗口消息
-window.postMessage({
-    action: 'updateTestRequirements',
-    data: {
-        content: '<div>新的测试要求内容</div>'
-    }
-}, '*');
+用于验证模型准确性和生成论文数据：
+
+```python
+from analytics.offline_evaluator import get_offline_evaluator, GroundTruthData
+
+# 创建评估器
+evaluator = get_offline_evaluator()
+
+# 添加真实标签数据  
+ground_truth = GroundTruthData(
+    student_id='student_001',
+    knowledge_point='html_basics',
+    true_cognitive_load='high',
+    true_confusion_level='moderate', 
+    true_mastery_level=0.7,
+    actual_performance=True
+)
+evaluator.add_ground_truth(ground_truth)
+
+# 生成评估报告
+report = evaluator.generate_evaluation_report()
+
+# 获取论文就绪的指标
+print(f"BKT准确率: {report['bkt_model_evaluation']['accuracy']}")
+print(f"ML预测精度: {report['ml_model_evaluation']['precision']}")
 ```
 
-#### 更新测试结果
+### CHI论文数据收集
 
-```javascript
-// 直接在JavaScript中调用
-AICodeIDE.API.updateTestResults('<div class="result-item success">测试通过</div>');
+```python
+from analytics.offline_evaluator import CHIPaperDataCollector
 
-// 或通过跨窗口消息
-window.postMessage({
-    action: 'updateTestResults',
-    data: {
-        content: '<div class="result-item success">测试通过</div>'
-    }
-}, '*');
+collector = CHIPaperDataCollector(evaluator)
 
-// 或传递结构化测试结果对象
-window.postMessage({
-    action: 'updateTestResults',
-    data: {
-        results: {
-            pass: true,
-            items: [
-                { status: 'success', message: '标题元素已正确实现' },
-                { status: 'error', message: '缺少按钮元素' }
-            ]
-        }
-    }
-}, '*');
+# 对照实验数据收集
+comparison = collector.collect_comparative_study_data(
+    control_group_data=traditional_learning_data,
+    experimental_group_data=smart_learning_data
+)
+
+# 获取论文关键发现
+findings = comparison['paper_ready_metrics']['key_findings']
+# 例如: ["学习效率提升: 15.2%", "认知负荷降低: 23.1%"]
 ```
 
-#### 获取代码
+## 🔍 故障排除
 
-```javascript
-// 直接在JavaScript中调用
-const { success, code } = AICodeIDE.API.getCode();
-if (success) {
-    console.log(code.html, code.css, code.js);
-}
+### 常见问题解决
 
-// 或通过跨窗口消息
-window.postMessage({
-    action: 'getCode',
-    data: {}
-}, '*');
-// 需要监听返回消息
+**Q1: 智能功能不工作**
+```bash
+# 检查v2 API状态
+curl http://localhost:8080/api/v2/info
+
+# 预期返回: "analytics_available": true
 ```
 
-#### 设置代码
+**Q2: 机器学习模型未训练**
+- 正常现象，需要收集足够行为数据后自动训练
+- 初期使用基于规则的预测，随着数据增加切换到ML模型
 
-```javascript
-// 直接在JavaScript中调用
-AICodeIDE.API.setCode({
-    html: '<div>Hello</div>',
-    css: 'div { color: red; }',
-    js: 'console.log("Hello");'
-});
+**Q3: BKT追踪不准确**
+- 确保有足够的学习表现数据
+- 检查知识点定义是否与学习内容匹配
 
-// 或通过跨窗口消息
-window.postMessage({
-    action: 'setCode',
-    data: {
-        html: '<div>Hello</div>',
-        css: 'div { color: red; }',
-        js: 'console.log("Hello");'
-    }
-}, '*');
+### 性能监控
+
+```bash
+# 查看系统日志
+tail -f logs/behavior/*.log
+
+# 检查模型状态
+ls models/  # ML模型文件
+
+# 查看评估报告
+ls evaluation_data/  # 离线评估结果
 ```
 
-## 集成指南
+## 🎯 系统价值
 
-该模块设计为可独立运行，也可集成到主项目中。集成步骤：
+### 对学习者
 
-### 使用iframe集成
+1. **个性化学习体验**: 根据学习状态实时调整
+2. **智能困惑检测**: 及时发现并解决学习难点
+3. **科学学习指导**: 基于数据的客观建议
+4. **学习效果可视化**: 清晰的进度追踪
 
-最简单的集成方式是使用iframe将IDE模块嵌入到主项目中：
+### 对教育者  
 
-```html
-<iframe id="ide-frame" src="/path/to/ide-module/frontend/index.html"></iframe>
+1. **学习行为洞察**: 深度理解学习过程
+2. **教学策略优化**: 数据驱动的教学改进
+3. **个性化干预**: 精准的学习支持
+4. **效果评估工具**: 科学的教学评价
 
-<script>
-    const ideFrame = document.getElementById('ide-frame');
-    
-    // 监听IDE就绪消息
-    window.addEventListener('message', function(event) {
-        if (event.data.action === 'ideReady') {
-            console.log('IDE已就绪', event.data);
-            
-            // 设置测试要求
-            ideFrame.contentWindow.postMessage({
-                action: 'updateTestRequirements',
-                data: {
-                    content: '<p>完成以下任务：...</p>'
-                }
-            }, '*');
-        }
-    });
-    
-    // 获取代码
-    function getCodeFromIDE() {
-        ideFrame.contentWindow.postMessage({
-            action: 'getCode',
-            data: {}
-        }, '*');
-    }
-    
-    // 监听IDE返回的代码
-    window.addEventListener('message', function(event) {
-        if (event.data.action === 'getCodeResponse') {
-            console.log('获取到代码', event.data);
-        }
-    });
-</script>
-```
+### 对研究者
 
-### 直接集成
+1. **创新技术验证**: 人-AI融合教学模式
+2. **大规模数据采集**: 丰富的学习行为数据  
+3. **模型效果评估**: 完整的评估框架
+4. **论文支撑工具**: CHI等顶级会议发表支持
 
-如果需要更深度的集成：
+---
 
-1. **前端集成**：
-   - 复制`frontend`目录下的文件到主项目对应位置
-   - 修改`index.html`文件以符合主项目模板
-   - 调整API端点路径以匹配主项目结构
+**系统版本**: v2.0 (智能增强版)  
+**发布日期**: 2025-07-20  
+**研究支持**: ACM CHI会议论文项目  
+**技术特色**: 人-LLM融合 + 贝叶斯知识追踪 + 机器学习状态预测
 
-2. **后端集成**：
-   - 将`backend`目录中的Python模块集成到主项目的FastAPI应用中
-   - 调整Docker配置以匹配主项目环境
-   - 确保依赖项在主项目中可用
-
-## 测试结果状态显示
-
-测试结果支持以下状态：
-
-- `success`: 成功/通过 (绿色)
-- `error`: 错误/失败 (红色)
-- `warning`: 警告 (黄色)
-
-可以使用以下HTML结构显示测试结果：
-
-```html
-<div class="result-item success">
-    <span class="result-icon">✓</span>
-    <span class="result-message">测试通过</span>
-</div>
-
-<div class="result-item error">
-    <span class="result-icon">✗</span>
-    <span class="result-message">测试失败</span>
-</div>
-
-<div class="result-item warning">
-    <span class="result-icon">⚠</span>
-    <span class="result-message">测试警告</span>
-</div>
-```
-
-## 注意事项
-
-- Docker构建时需要在宿主机上设置代理：
-  ```
-  export https_proxy=http://127.0.0.1:7897
-  export http_proxy=http://127.0.0.1:7897
-  ```
-- 在生产环境中，应限制CORS设置并添加适当的安全措施
-- 应当限制`allowedOrigins`以只接受来自指定域名的消息
-- AI助手目前使用模拟响应，实际部署时需替换为真实API调用
-- 默认情况下，测试结果区域是折叠的，更新测试结果时会自动展开
-- API就绪后会向父窗口发送`ideReady`消息，建议在收到此消息后再进行交互
-
-## 后续开发计划
-
-1. 改进AI助手功能，集成实际的AI API
-2. 增强代码静态检查功能
-3. 添加代码片段库和模板
-4. 实现用户代码保存和加载功能
-5. 优化Docker容器池管理，提高性能

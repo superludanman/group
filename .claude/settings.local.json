@@ -5,7 +5,9 @@
       "Bash(ls:*)",
       "Bash(rm:*)",
       "Bash(chmod:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)"
     ],
     "deny": []
   }

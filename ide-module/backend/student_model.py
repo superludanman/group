@@ -229,6 +229,7 @@ class StudentModelService:
         model.cognitive_state.last_updated = now
         
         # 更新情感状态
+        # TODO:
         if "attempts" in test_results and "success" in test_results:
             attempts = test_results["attempts"]
             success = test_results["success"]

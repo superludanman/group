@@ -24,6 +24,20 @@ from student_model import get_student_model_service
 from prompt_generator import get_prompt_generator
 from ai_service import get_ai_service
 
+# 导入改进的分析模块
+try:
+    from analytics.api_integration import (
+        get_api_integration_service, 
+        BehaviorLogRequest, 
+        QuizGenerationRequest, 
+        QuizEvaluationRequest,
+        PerformanceUpdateRequest
+    )
+    ANALYTICS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"分析模块导入失败: {e}")
+    ANALYTICS_AVAILABLE = False
+
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("API")
@@ -73,6 +87,11 @@ async def startup_event():
         get_student_model_service()
         get_prompt_generator()
         get_ai_service()
+        
+        # 初始化改进的分析服务
+        if ANALYTICS_AVAILABLE:
+            get_api_integration_service()
+            logger.info("Enhanced analytics services initialized")
         
         logger.info("Services initialized successfully")
     except Exception as e:
@@ -260,6 +279,121 @@ async def cleanup_session(session_id: str):
     except Exception as e:
         logger.error(f"Error cleaning up session: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# 新增的 v2 API 路由 - 改进的学习者模型和自动出题系统
+# ============================================================================
+
+@app.get("/api/v2/student-model/{student_id}")
+async def get_student_model_v2(student_id: str):
+    """获取改进的学习者模型摘要"""
+    if not ANALYTICS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="分析服务不可用")
+    
+    try:
+        api_integration = get_api_integration_service()
+        return await api_integration.get_student_model_summary(student_id)
+    except Exception as e:
+        logger.error(f"Error getting student model v2: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/behavior/log")
+async def log_behavior_event_v2(request: BehaviorLogRequest):
+    """记录用户行为数据"""
+    if not ANALYTICS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="分析服务不可用")
+    
+    try:
+        api_integration = get_api_integration_service()
+        return await api_integration.log_behavior_event(request)
+    except Exception as e:
+        logger.error(f"Error logging behavior event: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/quiz/generate")
+async def generate_adaptive_quiz_v2(request: QuizGenerationRequest):
+    """生成自适应测试题"""
+    if not ANALYTICS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="分析服务不可用")
+    
+    try:
+        api_integration = get_api_integration_service()
+        return await api_integration.generate_adaptive_quiz(request)
+    except Exception as e:
+        logger.error(f"Error generating quiz: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/quiz/evaluate")
+async def evaluate_quiz_answers_v2(request: QuizEvaluationRequest):
+    """评估测试答案"""
+    if not ANALYTICS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="分析服务不可用")
+    
+    try:
+        api_integration = get_api_integration_service()
+        return await api_integration.evaluate_quiz_answers(request)
+    except Exception as e:
+        logger.error(f"Error evaluating quiz: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/v2/performance/update")
+async def update_performance_v2(request: PerformanceUpdateRequest):
+    """更新学习表现"""
+    if not ANALYTICS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="分析服务不可用")
+    
+    try:
+        api_integration = get_api_integration_service()
+        return await api_integration.update_performance(request)
+    except Exception as e:
+        logger.error(f"Error updating performance: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v2/learning/progress/{student_id}")
+async def get_learning_progress_v2(student_id: str):
+    """获取学习进度分析"""
+    if not ANALYTICS_AVAILABLE:
+        raise HTTPException(status_code=503, detail="分析服务不可用")
+    
+    try:
+        api_integration = get_api_integration_service()
+        return await api_integration.get_learning_progress(student_id)
+    except Exception as e:
+        logger.error(f"Error getting learning progress: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/v2/info")
+async def get_api_v2_info():
+    """获取v2 API信息和功能"""
+    return {
+        "version": "2.0",
+        "description": "改进的学习者模型和自动出题系统",
+        "features": [
+            "实时行为数据采集",
+            "多维度状态推理",
+            "自适应测试题生成", 
+            "智能答案评估",
+            "个性化学习建议",
+            "时间衰减知识模型",
+            "贝叶斯知识追踪"
+        ],
+        "endpoints": {
+            "student_model": "/api/v2/student-model/{student_id}",
+            "behavior_logging": "/api/v2/behavior/log",
+            "quiz_generation": "/api/v2/quiz/generate",
+            "quiz_evaluation": "/api/v2/quiz/evaluate",
+            "performance_update": "/api/v2/performance/update",
+            "learning_progress": "/api/v2/learning/progress/{student_id}"
+        },
+        "analytics_available": ANALYTICS_AVAILABLE
+    }
 
 
 # 设置信号处理，确保优雅关闭
