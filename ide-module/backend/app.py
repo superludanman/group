@@ -26,6 +26,8 @@ from ai_service import get_ai_service
 
 # 导入改进的分析模块
 try:
+    # 这是我们新创建的、统一的动态反馈入口
+    from analytics.api_integration import get_adaptive_ai_feedback
     from analytics.api_integration import (
         get_api_integration_service, 
         BehaviorLogRequest, 
@@ -35,7 +37,7 @@ try:
     )
     ANALYTICS_AVAILABLE = True
 except ImportError as e:
-    logger.warning(f"分析模块导入失败: {e}")
+    # logger.warning(f"分析模块导入失败: {e}")
     ANALYTICS_AVAILABLE = False
 
 # 配置日志
@@ -198,28 +200,30 @@ async def ai_chat(message: AIMessage):
 @app.post("/ai/error-feedback")
 async def ai_error_feedback(error_data: CodeError):
     """
-    获取AI对代码错误的反馈
+    获取AI对代码错误的反馈 (V2 - 集成动态反馈系统)
     """
     try:
-        # 获取必要的服务
-        student_model_service = get_student_model_service()
+        # 1. 获取必要的服务和信息
         ai_service = get_ai_service()
-        
-        # 生成或获取会话ID
         session_id = error_data.session_id or "default_session"
-        
-        # 获取学习者模型摘要
-        student_model = student_model_service.get_model(session_id)
-        model_summary = student_model_service.get_model_summary(session_id)
-        
-        # 获取AI错误反馈
-        response = await ai_service.get_error_feedback(
-            student_model_summary=model_summary,
-            code_context=error_data.code,
-            error_info=error_data.error_info
+        # 假设 task_id 可以从 session_id 或其他地方解析得到，这里暂时硬编码
+        task_id = "current_task" 
+
+        # 2. 调用我们新的动态反馈系统来生成一个自适应的Prompt
+        # 这个函数内部会处理行为日志记录、状态评估和提示生成
+        adaptive_prompt = get_adaptive_ai_feedback(
+            user_id=session_id,
+            task_id=task_id,
+            user_code=str(error_data.code), # 确保代码是字符串格式
+            error_message=str(error_data.error_info)
         )
         
-        return response
+        # 3. 使用这个动态生成的Prompt去调用AI服务
+        # 注意：我们不再需要 student_model_summary，因为相关信息已包含在prompt中
+        response = await ai_service.get_raw_ai_response(adaptive_prompt)
+        
+        return {"status": "success", "feedback": response}
+
     except Exception as e:
         logger.error(f"Error in AI error feedback: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
