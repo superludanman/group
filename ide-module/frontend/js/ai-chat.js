@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatState = {
         messages: [],
         isWaitingForResponse: false,
-        backendUrl: 'http://localhost:8080', // 后端API地址，根据实际情况修改
+        backendUrl: '/api/ide', // 使用相对路径指向主项目的 API 端点
         sessionId: generateSessionId(), // 会话ID，用于跟踪学习者状态
         userBehavior: {
             lastActivity: Date.now(),

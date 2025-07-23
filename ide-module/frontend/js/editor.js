@@ -6,16 +6,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedSessionId = localStorage.getItem('editorSessionId');
     console.log(savedSessionId ? `从本地存储中恢复会话ID: ${savedSessionId}` : '未找到本地存储的会话ID');
     
-    // 编辑器状态
-    let editorState = {
-        activeTab: 'html',
-        html: '<div class="demo">\n  <h1>欢迎使用HTML编辑器</h1>\n  <p>这是一个用于学习HTML、CSS和JavaScript的在线编辑器。</p>\n  <button id="demo-button">点击我</button>\n</div>',
-        css: '.demo {\n  max-width: 600px;\n  margin: 20px auto;\n  padding: 20px;\n  font-family: Arial, sans-serif;\n  background-color: #f7f7f7;\n  border-radius: 8px;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n}\n\nh1 {\n  color: #10a37f;\n}\n\nbutton {\n  background-color: #10a37f;\n  color: white;\n  border: none;\n  padding: 8px 16px;\n  border-radius: 4px;\n  cursor: pointer;\n}\n\nbutton:hover {\n  background-color: #0e906f;\n}',
-        js: 'document.getElementById("demo-button").addEventListener("click", function() {\n  alert("按钮被点击了！");\n});',
-        sessionId: savedSessionId || null, // 使用本地存储的会话ID或null
-        isRunning: false,
-        backendUrl: 'http://localhost:8080' // 后端API地址
-    };
+    // 编辑器配置和状态
+window.editorState = {
+    html: defaultHTML,
+    css: defaultCSS,
+    js: defaultJS,
+    backendUrl: '/api/ide' // 使用相对路径指向主项目的 API 端点
+};
 
     // 编辑器实例
     let editor = null;
@@ -626,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
             js: 'document.getElementById("demo-button").addEventListener("click", function() {\n  alert("按钮被点击了！");\n});',
             sessionId: null,
             isRunning: false,
-            backendUrl: 'http://localhost:8080'
+            backendUrl: '/api/ide'
         };
 
         // 更新编辑器内容
