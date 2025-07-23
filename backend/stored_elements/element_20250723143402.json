@@ -1,0 +1,15 @@
+{
+  "selector": "/*[@id=\"app\"]/div[1]/div/main/div[3]/div[2]/div[1]",
+  "outerHTML": "<div class=\"item-image\" style=\"background-color: rgb(53, 73, 94);\"><span class=\"item-category\">技术</span></div>",
+  "bbox": {
+    "x": 300,
+    "y": 47.07291793823242,
+    "width": 276,
+    "height": 160
+  },
+  "tagName": "div",
+  "classList": [
+    "item-image"
+  ],
+  "pageURL": "http://localhost:8080/pages/index01.html"
+}

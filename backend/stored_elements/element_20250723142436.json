@@ -1,0 +1,15 @@
+{
+  "selector": "/*[@id=\"app\"]/div[1]/div/main/div[3]/div/div[2]/div/span[1]",
+  "outerHTML": "<span class=\"item-difficulty\">难度: {{ '★'.repeat(item.difficulty) }}</span>",
+  "bbox": {
+    "x": 322,
+    "y": 137.33334350585938,
+    "width": 151.40625,
+    "height": 61.21875
+  },
+  "tagName": "span",
+  "classList": [
+    "item-difficulty"
+  ],
+  "pageURL": "http://localhost:8080/pages/index01.html"
+}
