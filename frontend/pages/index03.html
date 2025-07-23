@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue 示例页面</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- 引入Vue -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- 导航栏 -->
+    <nav class="navbar">
+      <div class="navbar-brand">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii0xMS41IC0xMC4yMzE3NCAyMyAyMC40NjM0OCI+CiAgPHRpdGxlPlZ1ZSBMb2dvPC90aXRsZT4KICA8cGF0aCBkPSJNMCAwTDEwIDEzSC0xMFoiIGZpbGw9IiM0MUI4ODMiPjwvcGF0aD4KICA8cGF0aCBkPSJNMCAwTC0xMCAxM0gxMFoiIGZpbGw9IiMzNDQ5NUUiIG9wYWNpdHk9IjAuNSI+PC9wYXRoPgo8L3N2Zz4=" alt="Vue Logo" class="logo">
+        <h1>Vue 示例应用</h1>
+      </div>
+      <div class="navbar-links">
+        <a href="#" class="active">首页</a>
+        <a href="#">关于</a>
+        <a href="#" class="login-button">登录</a>
+      </div>
+    </nav>
+    
+    <!-- 主要内容 -->
+    <div class="container">
+      <!-- 侧边过滤器 -->
+      <aside class="filters">
+        <h2>过滤选项</h2>
+        <div class="filter-group">
+          <h3>分类</h3>
+          <label class="checkbox">
+            <input type="checkbox" v-model="filters.category1" @change="filterItems">
+            <span>技术</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" v-model="filters.category2" @change="filterItems">
+            <span>设计</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" v-model="filters.category3" @change="filterItems">
+            <span>管理</span>
+          </label>
+        </div>
+        <div class="filter-group">
+          <h3>难度</h3>
+          <div class="difficulty-slider">
+            <input type="range" min="1" max="5" v-model.number="filters.difficulty" @input="filterItems">
+            <span>{{ filters.difficulty }}</span>
+          </div>
+        </div>
+        <button class="reset-button" @click="resetFilters">重置过滤器</button>
+      </aside>
+      
+      <!-- 内容卡片 -->
+      <main class="content">
+        <div class="search-bar">
+          <input type="text" placeholder="搜索课程..." v-model="searchQuery" @input="filterItems">
+          <button class="search-button">搜索</button>
+        </div>
+        
+        <div class="items-header">
+          <h2>课程列表</h2>
+          <div class="items-count">显示 {{ filteredItems.length }} 个课程</div>
+        </div>
+        
+        <div class="items-container">
+          <div class="item-card" v-for="item in filteredItems" :key="item.id" :class="{ 'item-featured': item.featured }">
+            <div class="item-image" :style="{ backgroundColor: item.color }">
+              <span class="item-category">{{ item.category }}</span>
+            </div>
+            <div class="item-content">
+              <h3 class="item-title">{{ item.title }}</h3>
+              <p class="item-description">{{ item.description }}</p>
+              <div class="item-meta">
+                <span class="item-difficulty">难度: {{ '★'.repeat(item.difficulty) }}</span>
+                <span class="item-duration">{{ item.duration }}</span>
+              </div>
+              <button class="item-button">查看详情</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 分页 -->
+        <div class="pagination">
+          <button class="pagination-button" @click="prevPage" :disabled="currentPage === 1">&laquo; 上一页</button>
+          <span class="pagination-info">第 {{ currentPage }} 页，共 {{ totalPages }} 页</span>
+          <button class="pagination-button" @click="nextPage" :disabled="currentPage === totalPages">下一页 &raquo;</button>
+        </div>
+      </main>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-column">
+          <h4>关于我们</h4>
+          <p>Vue学习平台是一个专注于Vue.js技术栈学习的在线教育平台。</p>
+        </div>
+        <div class="footer-column">
+          <h4>联系我们</h4>
+          <a href="mailto:contact@example.com">contact@example.com</a>
+        </div>
+        <div class="footer-column">
+          <h4>关注我们</h4>
+          <div class="social-links">
+            <a href="#">微博</a>
+            <a href="#">微信</a>
+            <a href="#">GitHub</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 Vue学习平台. 保留所有权利。</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 引入选择器脚本 -->
+  <script type="module">
+    import { initIframeSelector } from '../js/iframe-bridge.js';
+    initIframeSelector();
+  </script>
+  
+  <!-- Vue应用代码 -->
+  <script>
+    const { createApp, ref, computed } = Vue;
+    
+    createApp({
+      setup() {
+        // 数据
+        const items = ref([
+          { id: 1, title: 'Vue 基础入门', description: '学习Vue 3的核心概念和基础知识。', category: '技术', difficulty: 1, duration: '2小时', color: '#42b883', featured: false },
+          { id: 2, title: 'Vue 组件开发', description: '深入组件化开发，掌握组件通信和生命周期。', category: '技术', difficulty: 2, duration: '3小时', color: '#35495e', featured: true },
+          { id: 3, title: 'Vuex 状态管理', description: '学习Vuex进行集中式状态管理。', category: '技术', difficulty: 3, duration: '4小时', color: '#7957d5', featured: false },
+          { id: 4, title: 'Vue Router', description: '使用Vue Router实现单页面应用路由。', category: '技术', difficulty: 2, duration: '2.5小时', color: '#ff7e67', featured: false },
+          { id: 5, title: 'UI设计原则', description: '了解UI设计的基本原则和最佳实践。', category: '设计', difficulty: 2, duration: '2小时', color: '#ffbe0b', featured: false },
+          { id: 6, title: '响应式设计', description: '学习如何创建适应不同设备的响应式界面。', category: '设计', difficulty: 3, duration: '3小时', color: '#fb5607', featured: true },
+          { id: 7, title: '项目管理基础', description: '学习软件项目管理的基础知识。', category: '管理', difficulty: 2, duration: '4小时', color: '#3a86ff', featured: false },
+          { id: 8, title: '敏捷开发', description: '掌握敏捷开发方法论和实践。', category: '管理', difficulty: 4, duration: '5小时', color: '#8338ec', featured: false },
+        ]);
+        
+        // 过滤器
+        const filters = ref({
+          category1: true,
+          category2: true,
+          category3: true,
+          difficulty: 1
+        });
+        
+        // 搜索
+        const searchQuery = ref('');
+        
+        // 分页
+        const itemsPerPage = 4;
+        const currentPage = ref(1);
+        
+        // 过滤项目
+        const filteredItems = computed(() => {
+          return items.value.filter(item => {
+            // 类别过滤
+            const categoryMatch = 
+              (item.category === '技术' && filters.value.category1) ||
+              (item.category === '设计' && filters.value.category2) ||
+              (item.category === '管理' && filters.value.category3);
+            
+            // 难度过滤
+            const difficultyMatch = item.difficulty >= filters.value.difficulty;
+            
+            // 搜索过滤
+            const searchMatch = item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                              item.description.toLowerCase().includes(searchQuery.value.toLowerCase());
+            
+            return categoryMatch && difficultyMatch && searchMatch;
+          });
+        });
+        
+        // 分页项目
+        const paginatedItems = computed(() => {
+          const startIndex = (currentPage.value - 1) * itemsPerPage;
+          return filteredItems.value.slice(startIndex, startIndex + itemsPerPage);
+        });
+        
+        // 总页数
+        const totalPages = computed(() => {
+          return Math.ceil(filteredItems.value.length / itemsPerPage);
+        });
+        
+        // 重置过滤器
+        function resetFilters() {
+          filters.value = {
+            category1: true,
+            category2: true,
+            category3: true,
+            difficulty: 1
+          };
+          searchQuery.value = '';
+          currentPage.value = 1;
+        }
+        
+        // 过滤项目
+        function filterItems() {
+          currentPage.value = 1;
+        }
+        
+        // 分页导航
+        function prevPage() {
+          if (currentPage.value > 1) {
+            currentPage.value--;
+          }
+        }
+        
+        function nextPage() {
+          if (currentPage.value < totalPages.value) {
+            currentPage.value++;
+          }
+        }
+        
+        return {
+          items,
+          filters,
+          searchQuery,
+          currentPage,
+          filteredItems,
+          totalPages,
+          resetFilters,
+          filterItems,
+          prevPage,
+          nextPage
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
