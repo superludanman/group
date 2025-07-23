@@ -1,18 +1,20 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+<!doctype html>
+<html lang="zh-cn">
+
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Code IDE</title>
+    <title>ai code ide</title>
     <style>
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             height: 100%;
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, blinkmacsystemfont, 'segoe ui', roboto, oxygen, ubuntu, cantarell, 'open sans', 'helvetica neue', sans-serif;
         }
-        
+
         .ide-container {
             width: 100vw;
             height: 100vh;
@@ -20,26 +22,27 @@
         }
     </style>
 </head>
+
 <body>
-    <!-- 直接嵌入IDE模块的前端内容 -->
-    <div id="app">
-        <!-- IDE内容将通过JavaScript动态加载 -->
-    </div>
-    
-    <!-- 加载IDE模块的JavaScript文件 -->
-    <script src="/ide-module/frontend/js/editor.js"></script>
-    <script src="/ide-module/frontend/js/preview.js"></script>
-    <script src="/ide-module/frontend/js/ai-chat.js"></script>
-    <script src="/ide-module/frontend/js/api-interface.js"></script>
-    <script src="/ide-module/frontend/js/test-results.js"></script>
-    <script src="/ide-module/frontend/js/toggle-panels.js"></script>
-    
+    <iframe src="/ide-module/index.html" class="ide-container" id="ide-frame" title="ai code ide">
+    </iframe>
+
     <script>
-        // 页面加载完成后初始化IDE
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('IDE页面加载完成');
-            // IDE初始化逻辑将在各模块的JavaScript文件中处理
+        // 页面加载完成后添加事件监听器
+        document.addEventListener('DOMContentLoaded', function () {
+            const ideFrame = document.getElementById('ide-frame');
+
+            // 监听来自 iframe 的消息
+            window.addEventListener('message', function (event) {
+                console.log('收到 iframe 消息:', event.data);
+
+                // 当 ide 准备就绪时
+                if (event.data.action === 'ideready') {
+                    console.log('ide 已准备就绪');
+                }
+            });
         });
     </script>
 </body>
+
 </html>

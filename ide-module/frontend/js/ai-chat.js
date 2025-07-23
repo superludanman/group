@@ -623,23 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
             reply = "### JavaScript代码优化建议\n\n你的JavaScript代码可以通过以下方式改进：\n\n1. 使用现代ES6+语法（箭头函数、解构赋值等）\n2. 应用函数式编程原则减少副作用\n3. 使用事件委托减少事件监听器数量\n\n```javascript\n// 旧代码\nfunction getUser(id) {\n  return fetch('/api/users/' + id)\n    .then(function(response) {\n      return response.json();\n    })\n    .then(function(data) {\n      return data;\n    });\n}\n\n// 改进后的代码\nconst getUser = async (id) => {\n  try {\n    const response = await fetch(`/api/users/${id}`);\n    return await response.json();\n  } catch (error) {\n    console.error('获取用户数据失败:', error);\n    return null;\n  }\n};\n```";
             suggestions = ["使用async/await替代Promise链", "应用事件委托模式", "封装重复使用的功能"];
         } else {
-            reply = "### 编程学习建议
-
-要提高Web开发技能，建议你关注以下几个方面：
-
-1. **掌握基础知识**：深入理解HTML语义化、CSS布局技术和JavaScript核心概念
-2. **学习现代框架**：熟悉React、Vue或Angular等主流前端框架
-3. **关注性能优化**：学习代码分割、懒加载和资源优化技术
-4. **实践项目开发**：通过实际项目积累经验，建立个人作品集
-
-下面是一个学习路线图：
-
-1. 基础阶段：HTML、CSS、JavaScript基础
-2. 进阶阶段：现代JS（ES6+）、响应式设计、CSS预处理器
-3. 框架阶段：选择一个框架深入学习
-4. 专业阶段：性能优化、安全性、可访问性、测试
-
-不要急于学习太多技术，专注于打好基础并掌握一个技术栈是更有效的学习方式。";
+            reply = "### 编程学习建议\n\n要提高Web开发技能，建议你关注以下几个方面：\n\n1. **掌握基础知识**：深入理解HTML语义化、CSS布局技术和JavaScript核心概念\n2. **学习现代框架**：熟悉React、Vue或Angular等主流前端框架\n3. **关注性能优化**：学习代码分割、懒加载和资源优化技术\n4. **实践项目开发**：通过实际项目积累经验，建立个人作品集\n\n下面是一个学习路线图：\n\n1. 基础阶段：HTML、CSS、JavaScript基础\n2. 进阶阶段：现代JS（ES6+）、响应式设计、CSS预处理器\n3. 框架阶段：选择一个框架深入学习\n4. 专业阶段：性能优化、安全性、可访问性、测试\n\n不要急于学习太多技术，专注于打好基础并掌握一个技术栈是更有效的学习方式。";
             suggestions = ["如何提高代码可读性？", "学习响应式设计", "前端框架选择建议"];
         }
         
