@@ -21,27 +21,24 @@
     </style>
 </head>
 <body>
-    <iframe 
-        src="/ide-module/frontend/index.html" 
-        class="ide-container"
-        id="ide-frame"
-        title="AI Code IDE">
-    </iframe>
+    <!-- 直接嵌入IDE模块的前端内容 -->
+    <div id="app">
+        <!-- IDE内容将通过JavaScript动态加载 -->
+    </div>
+    
+    <!-- 加载IDE模块的JavaScript文件 -->
+    <script src="/ide-module/frontend/js/editor.js"></script>
+    <script src="/ide-module/frontend/js/preview.js"></script>
+    <script src="/ide-module/frontend/js/ai-chat.js"></script>
+    <script src="/ide-module/frontend/js/api-interface.js"></script>
+    <script src="/ide-module/frontend/js/test-results.js"></script>
+    <script src="/ide-module/frontend/js/toggle-panels.js"></script>
     
     <script>
-        // 页面加载完成后添加事件监听器
+        // 页面加载完成后初始化IDE
         document.addEventListener('DOMContentLoaded', function() {
-            const ideFrame = document.getElementById('ide-frame');
-            
-            // 监听来自 iframe 的消息
-            window.addEventListener('message', function(event) {
-                console.log('收到 iframe 消息:', event.data);
-                
-                // 当 IDE 准备就绪时
-                if (event.data.action === 'ideReady') {
-                    console.log('IDE 已准备就绪');
-                }
-            });
+            console.log('IDE页面加载完成');
+            // IDE初始化逻辑将在各模块的JavaScript文件中处理
         });
     </script>
 </body>
