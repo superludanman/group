@@ -1,10 +1,53 @@
-/**
+/** 
  * Monaco编辑器初始化和管理
  */
 document.addEventListener('DOMContentLoaded', function() {
     // 从本地存储中获取现有会话ID（如果有）
     const savedSessionId = localStorage.getItem('editorSessionId');
     console.log(savedSessionId ? `从本地存储中恢复会话ID: ${savedSessionId}` : '未找到本地存储的会话ID');
+    
+    // 默认代码内容
+    const defaultHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <title>示例页面</title>
+</head>
+<body>
+    <h1>欢迎使用代码编辑器</h1>
+    <p>在这里编写你的HTML代码</p>
+    <button id="demo-button">点击我</button>
+    
+    <script src="script.js"></script>
+</body>
+</html>`;
+    
+    const defaultCSS = `body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    color: #10a37f;
+}
+
+button {
+    background-color: #10a37f;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0e906f;
+}`;
+    
+    const defaultJS = `document.getElementById('demo-button').addEventListener('click', function() {
+    alert('按钮被点击了！');
+});`;
     
     // 编辑器配置和状态
 window.editorState = {
@@ -289,9 +332,12 @@ window.editorState = {
         }
         
         // 刷新预览按钮
-        document.getElementById('refresh-preview').addEventListener('click', function() {
-            updateLocalPreview();
-        });
+        const refreshPreviewButton = document.getElementById('refresh-preview');
+        if (refreshPreviewButton) {
+            refreshPreviewButton.addEventListener('click', function() {
+                updateLocalPreview();
+            });
+        }
 
         // 提交按钮 (原重置按钮)
         document.getElementById('reset-button').addEventListener('click', function() {
@@ -303,9 +349,15 @@ window.editorState = {
         });
 
         // 移动端菜单切换
-        document.querySelector('.mobile-menu-toggle').addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('mobile-open');
-        });
+        const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', function() {
+                const sidebar = document.querySelector('.sidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('mobile-open');
+                }
+            });
+        }
     }
 
     // 本地预览更新（仅用于快速刷新和初始化）
