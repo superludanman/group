@@ -207,8 +207,11 @@
     });
     
     // 定义全局配置
+    // 从环境变量或默认值获取端口配置
+    const ideModulePort = typeof window.IDE_MODULE_PORT !== 'undefined' ? window.IDE_MODULE_PORT : 8080;
+    
     window.aiChatConfig = {
-        backendUrl: '/api/ide',  // 使用相对路径指向主项目的 API 端点
+        backendUrl: `http://localhost:${ideModulePort}`,  // 指向ide-module后端服务
         sessionId: 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11)
     };
     

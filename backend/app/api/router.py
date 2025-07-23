@@ -12,6 +12,14 @@ from app.modules.module_loader import (
     post_module_handler
 )
 
+# 导入IDE模块的额外处理程序
+from app.modules.ide_module import (
+    ai_chat_handler,
+    ai_error_feedback_handler,
+    student_update_handler,
+    get_student_model_handler
+)
+
 # 配置日志
 logger = logging.getLogger(__name__)
 
@@ -63,3 +71,34 @@ async def post_module(module_name: str, request: Request):
         return await handler(request)
     else:
         return {"module": module_name, "status": "模块未找到或未注册"}
+
+# IDE模块特定的API端点
+@api_router.post("/module/ide/ai/chat")
+async def ide_ai_chat(request: Request):
+    """
+    IDE模块AI聊天端点
+    """
+    return await ai_chat_handler(request)
+
+@api_router.post("/module/ide/ai/error-feedback")
+async def ide_ai_error_feedback(request: Request):
+    """
+    IDE模块AI错误反馈端点
+    """
+    return await ai_error_feedback_handler(request)
+
+@api_router.post("/module/ide/student/update")
+async def ide_student_update(request: Request):
+    """
+    IDE模块学生模型更新端点
+    """
+    return await student_update_handler(request)
+
+@api_router.get("/module/ide/student/{session_id}")
+async def ide_get_student_model(session_id: str, request: Request):
+    """
+    IDE模块获取学生模型端点
+    """
+    # 为处理程序添加路径参数
+    request.path_params = {"session_id": session_id}
+    return await get_student_model_handler(request)

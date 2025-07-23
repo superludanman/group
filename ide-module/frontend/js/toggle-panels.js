@@ -19,25 +19,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 requirementsContent.style.display = 'none';
                 toggleRequirementsBtn.textContent = '查看提示';
             }
-        
-        // 在测试要求折叠时，调整修改建议区域的高度
-        const suggestionsContainer = document.querySelector('.suggestions-container');
-        const chatMessages = document.querySelector('.ai-chat-messages');
-        if (requirementsContent.style.display === 'none') {
-            suggestionsContainer.style.flexGrow = '3'; // 显著增加修改建议区域的占比
-            // 使聊天消息区域也变大
-            if (chatMessages) {
-                chatMessages.style.flex = '1 1 auto';
-                chatMessages.style.minHeight = '300px';
+            
+            // 在测试要求折叠时，调整修改建议区域的高度
+            const suggestionsContainer = document.querySelector('.suggestions-container');
+            const chatMessages = document.querySelector('.ai-chat-messages');
+            if (requirementsContent.style.display === 'none') {
+                suggestionsContainer.style.flexGrow = '3'; // 显著增加修改建议区域的占比
+                // 使聊天消息区域也变大
+                if (chatMessages) {
+                    chatMessages.style.flex = '1 1 auto';
+                    chatMessages.style.minHeight = '300px';
+                }
+            } else {
+                suggestionsContainer.style.flexGrow = '1'; // 恢复默认占比
+                if (chatMessages) {
+                    chatMessages.style.flex = '';
+                    chatMessages.style.minHeight = '';
+                }
             }
-        } else {
-            suggestionsContainer.style.flexGrow = '1'; // 恢复默认占比
-            if (chatMessages) {
-                chatMessages.style.flex = '';
-                chatMessages.style.minHeight = '';
-            }
-        }
-    });
+        });
+    }
     
     // 测试结果折叠功能
     if (toggleResultsBtn && resultsContent) {
@@ -49,25 +50,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 resultsContent.style.display = 'none';
                 toggleResultsBtn.textContent = '查看提示';
             }
-        
-        // 在测试结果折叠时，调整修改建议区域的高度
-        const suggestionsContainer = document.querySelector('.suggestions-container');
-        const chatMessages = document.querySelector('.ai-chat-messages');
-        if (resultsContent.style.display === 'none') {
-            suggestionsContainer.style.flexGrow = '3'; // 显著增加修改建议区域的占比
-            // 使聊天消息区域也变大
-            if (chatMessages) {
-                chatMessages.style.flex = '1 1 auto';
-                chatMessages.style.minHeight = '300px';
+            
+            // 在测试结果折叠时，调整修改建议区域的高度
+            const suggestionsContainer = document.querySelector('.suggestions-container');
+            const chatMessages = document.querySelector('.ai-chat-messages');
+            if (resultsContent.style.display === 'none') {
+                suggestionsContainer.style.flexGrow = '3'; // 显著增加修改建议区域的占比
+                // 使聊天消息区域也变大
+                if (chatMessages) {
+                    chatMessages.style.flex = '1 1 auto';
+                    chatMessages.style.minHeight = '300px';
+                }
+            } else {
+                suggestionsContainer.style.flexGrow = '1'; // 恢复默认占比
+                if (chatMessages) {
+                    chatMessages.style.flex = '';
+                    chatMessages.style.minHeight = '';
+                }
             }
-        } else {
-            suggestionsContainer.style.flexGrow = '1'; // 恢复默认占比
-            if (chatMessages) {
-                chatMessages.style.flex = '';
-                chatMessages.style.minHeight = '';
-            }
-        }
-    });
+        });
+    }
     
     // 预览按钮功能 - 更新预览窗口
     if (previewButton) {
@@ -136,9 +138,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="requirement-content">
                 <p>任务目标：创建一个简单的网页，包含标题、段落和按钮元素。</p>
                 <ol>
-                    <li>创建一个标题，文本为“我的第一个网页”</li>
+                    <li>创建一个标题，文本为"我的第一个网页"</li>
                     <li>添加一个段落，包含一些描述性文字</li>
-                    <li>创建一个按钮，文本为“点击我”</li>
+                    <li>创建一个按钮，文本为"点击我"</li>
                     <li>为按钮添加点击事件，点击时显示一个警告框</li>
                 </ol>
             </div>
