@@ -101,3 +101,12 @@ async def get_allowed_tags(user_id: str):
         return {"allowed_tags": list(tags)}
     finally:
         db.close()
+
+@api_router.post("/emotion")
+async def emotion(request: Request):
+    """
+    情绪分析API端点
+    """
+    response = await request.json()
+    text = response["text"]
+    return await EmotionModel(text)

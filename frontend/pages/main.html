@@ -699,15 +699,19 @@
           }
           // 元素被选中的处理函数
           function handleElementSelected(info) {
-            // 切换到代码tab并显示代码
+            // 切换到知识点展示tab
+            document.getElementById('tab-knowledge').click();
+            // 自动加载知识点内容（抓取的标签名转小写）
+            if (typeof loadDocumentForTag === 'function' && info.tagName) {
+              loadDocumentForTag(info.tagName.toLowerCase());
+            }
+            // 代码tab逻辑保留
             document.getElementById('tab-code').click();
             const codePre = document.getElementById('selectedElementCode');
             codePre.textContent = info.outerHTML || '';
             // 选取后自动切回“选取元素”按钮
             startButton.style.display = 'inline-block';
             stopButton.style.display = 'none';
-            // 不再清除底部状态提示
-            // statusBadge.style.display = 'none';
           }
           // 发送到后端函数
           function sendToBackend(info) {
