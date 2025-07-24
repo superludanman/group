@@ -1,149 +1,64 @@
 /**
- * 预览页面的JavaScript代码
+ * 代码预览功能
  */
-
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('预览页面已初始化');
-    
-    // 获取DOM元素
-    const nextStepButton = document.getElementById('next-step');
+    // 初始化预览框架
     const previewFrame = document.getElementById('preview-frame');
-    const aiExplanation = document.getElementById('ai-explanation');
-    const moduleContainer = document.getElementById('preview-module-container');
     
-    // 使用占位符内容初始化
-    if (previewFrame) {
-        previewFrame.innerHTML = `
-            <div style="text-align: center; padding: 2rem;">
-                <p>预览内容将在此处显示。</p>
-                <p>此区域将包含嵌入式网页供用户查看。</p>
-            </div>
-        `;
-    }
-    
-    // 示例解释内容
-    const explanations = [
-        "这是一个带有页眉、导航和内容部分的基本HTML网页。",
-        "注意导航菜单如何帮助用户在页面之间移动。让我们探索如何使用HTML创建它。",
-        "布局使用CSS Grid以响应式方式组织内容。让我们看看它是如何工作的。"
-    ];
-    
-    let currentStep = 0;
-    
-    // 处理下一步按钮点击
-    if (nextStepButton) {
-        nextStepButton.addEventListener('click', function() {
-            currentStep = (currentStep + 1) % explanations.length;
-            
-            if (aiExplanation) {
-                aiExplanation.innerHTML = `<p>${explanations[currentStep]}</p>`;
+    // 添加消息事件监听，来自iframe的消息
+    window.addEventListener('message', function(event) {
+        // 处理来自iframe的消息
+        if (event.data && typeof event.data === 'object') {
+            // 处理不同类型的消息
+            if (event.data.type === 'log') {
+                console.log('Preview log:', event.data.content);
+                // logToAI('log', event.data.content);
+            } else if (event.data.type === 'error') {
+                console.error('Preview error:', event.data.content);
+                // logToAI('error', event.data.content);
+            } else if (event.data.type === 'warn') {
+                console.warn('Preview warning:', event.data.content);
+                // logToAI('warn', event.data.content);
+            } else if (event.data.type === 'interaction') {
+                console.log('Preview interaction:', event.data.action, event.data.data);
+                // logInteraction(event.data.action, event.data.data);
+            } else if (event.data.type === 'heartbeat') {
+                // 心跳信息，可以用于检测预览是否正常
+                // console.log('Preview heartbeat received');
+                document.dispatchEvent(new CustomEvent('preview-heartbeat'));
             }
-            
-            console.log(`移动到预览步骤 ${currentStep + 1}`);
-        });
-    }
+        } else if (event.data === 'preview-heartbeat') {
+            // 兼容旧的心跳格式
+            document.dispatchEvent(new CustomEvent('preview-heartbeat'));
+        }
+    });
     
-    // 从后端加载示例数据
-    async function loadPreviewExample() {
+    // 初始化预览心跳检测
+    document.addEventListener('preview-heartbeat', function() {
+        // 浏览器控制台可以查看此信息
+        // console.log('Preview is active');
+    });
+    
+    // 当iframe加载完成时注入远程控制脚本
+    previewFrame.addEventListener('load', function() {
         try {
-            // 从API获取预览模块数据
-            const moduleData = await ApiClient.getModule('preview_module');
-            console.log('预览模块数据:', moduleData);
-            
-            if (moduleData && moduleData.status === 'active') {
-                // 获取当前示例
-                const exampleId = moduleData.data.current_example;
-                
-                // 获取特定示例数据
-                const exampleData = await ApiClient.sendToModule('preview_module', {
-                    action: 'get_example',
-                    example_id: exampleId
-                });
-                
-                if (exampleData && exampleData.status === 'success') {
-                    // 显示示例
-                    displayExample(exampleData.example);
-                }
-            }
-        } catch (error) {
-            console.error('加载预览示例时出错:', error);
-            
-            // 显示错误消息
-            if (previewFrame) {
-                previewFrame.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: red;">
-                        <p>加载预览内容时出错。</p>
-                        <p>请确保后端服务器正在运行。</p>
-                    </div>
-                `;
-            }
+            // 注入消息传递脚本到iframe
+            // 由于沙箱限制，我们不再直接操作iframe内容
+            // 而是在HTML内容中已经添加了必要的脚本
+        } catch (e) {
+            console.error('Error setting up preview frame:', e);
         }
+    });
+    
+    // 向AI助手发送日志（实际实现需与后端API集成）
+    function logToAI(type, data) {
+        // 后续实现与AI API的集成
+        console.log(`[AI日志] 类型: ${type}, 数据: ${data}`);
     }
     
-    // 显示预览示例
-    function displayExample(example) {
-        if (!example) return;
-        
-        if (previewFrame) {
-            // 显示HTML内容
-            previewFrame.innerHTML = `
-                <div style="padding: 1rem;">
-                    <h3>${example.name}</h3>
-                    <div class="example-preview" style="border: 1px solid #ddd; padding: 1rem; margin: 1rem 0;">
-                        ${example.html}
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (aiExplanation) {
-            // 显示解释
-            aiExplanation.innerHTML = `<p>${example.explanation}</p>`;
-        }
-    }
-    
-    // 加载下一个示例
-    async function loadNextExample() {
-        try {
-            // 获取当前示例
-            const moduleData = await ApiClient.getModule('preview_module');
-            const currentExampleId = moduleData.data.current_example;
-            
-            // 请求下一个示例
-            const nextExampleData = await ApiClient.sendToModule('preview_module', {
-                action: 'next_example',
-                example_id: currentExampleId
-            });
-            
-            if (nextExampleData && nextExampleData.status === 'success') {
-                // 显示下一个示例
-                displayExample(nextExampleData.example);
-            }
-        } catch (error) {
-            console.error('加载下一个示例时出错:', error);
-        }
-    }
-    
-    // 加载预览模块
-    if (moduleContainer) {
-        // 向用户显示加载消息
-        moduleContainer.innerHTML = '<p>正在加载预览模块...</p>';
-        
-        // 尝试从后端加载数据
-        loadPreviewExample();
-    }
-    
-    // 如果有下一步按钮，将其重新连接到加载下一个示例
-    if (nextStepButton) {
-        // 移除旧的事件监听器
-        nextStepButton.replaceWith(nextStepButton.cloneNode(true));
-        
-        // 获取新的按钮引用
-        const newNextStepButton = document.getElementById('next-step');
-        
-        // 添加新的事件监听器
-        if (newNextStepButton) {
-            newNextStepButton.addEventListener('click', loadNextExample);
-        }
+    // 向AI助手发送交互信息（实际实现需与后端API集成）
+    function logInteraction(type, data) {
+        // 后续实现与AI API的集成
+        console.log(`[AI交互] 类型: ${type}, 数据:`, data);
     }
 });
