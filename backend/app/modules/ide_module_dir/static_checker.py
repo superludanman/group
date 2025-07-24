@@ -179,14 +179,10 @@ class StaticChecker:
         html_result = self.check_html(html_code)
         
         # 检查CSS
-        css_result = {"status": "success", "errors": [], "warnings": []}
-        if css_code.strip():
-            css_result = self.check_css(css_code)
+        css_result = self.check_css(css_code)
         
         # 检查JavaScript
-        js_result = {"status": "success", "errors": [], "warnings": []}
-        if js_code.strip():
-            js_result = self.check_js(js_code)
+        js_result = self.check_js(js_code)
         
         # 合并结果
         all_errors = html_result["errors"] + css_result["errors"] + js_result["errors"]
