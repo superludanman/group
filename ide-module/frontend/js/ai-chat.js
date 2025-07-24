@@ -91,8 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('AI聊天模块初始化');
     // 检查DOM元素是否正确加载
     const sendMessageButton = document.getElementById('send-message');
-    const userMessageInput = document.getElementById('user-message');
-    const chatMessages = document.getElementById('ai-chat-messages');
     console.log('DOM元素检查:', {
         sendMessageButton: !!sendMessageButton,
         userMessageInput: !!userMessageInput,
@@ -141,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatState = {
         messages: [],
         isWaitingForResponse: false,
-        backendUrl: 'http://localhost:8080', // 后端API地址，根据实际情况修改
+        backendUrl: '/api/module/ide', // 使用相对路径指向主项目的 API 端点
         sessionId: generateSessionId(), // 会话ID，用于跟踪学习者状态
         userBehavior: {
             lastActivity: Date.now(),
@@ -157,7 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // DOM元素
     const chatMessages = document.getElementById('ai-chat-messages');
     const userMessageInput = document.getElementById('user-message');
-    const sendMessageButton = document.getElementById('send-message');
 
     // 初始化事件监听
     initChatEvents();
@@ -617,134 +614,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 根据消息内容生成不同的模拟响应
         if (message.toLowerCase().includes('html')) {
-            reply = "### HTML结构优化建议
-
-你的HTML结构可以通过以下方式改进：
-
-1. 使用更多的语义化标签，例如用`<section>`来包裹相关内容，用`<nav>`来包裹导航链接
-2. 确保添加适当的ARIA属性以提高无障碍性
-3. 添加适当的meta标签优化SEO
-
-这是一个优化的HTML结构示例：
-
-```html
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>页面标题</title>
-</head>
-<body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="#">首页</a></li>
-                <li><a href="#">关于</a></li>
-            </ul>
-        </nav>
-    </header>
-    <main>
-        <section>
-            <h1>主要内容</h1>
-            <p>这里是页面的主要内容。</p>
-        </section>
-    </main>
-    <footer>
-        <p>版权信息</p>
-    </footer>
-</body>
-</html>
-```";
+            reply = "### HTML结构优化建议\n\n你的HTML结构可以通过以下方式改进：\n\n1. 使用更多的语义化标签，例如用`<section>`来包裹相关内容，用`<nav>`来包裹导航链接\n2. 确保添加适当的ARIA属性以提高无障碍性\n3. 添加适当的meta标签优化SEO\n\n这是一个优化的HTML结构示例：\n\n```html\n<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>页面标题</title>\n</head>\n<body>\n    <header>\n        <nav>\n            <ul>\n                <li><a href=\"#\">首页</a></li>\n                <li><a href=\"#\">关于</a></li>\n            </ul>\n        </nav>\n    </header>\n    <main>\n        <section>\n            <h1>主要内容</h1>\n            <p>这里是页面的主要内容。</p>\n        </section>\n    </main>\n    <footer>\n        <p>版权信息</p>\n    </footer>\n</body>\n</html>\n```";
             suggestions = ["添加更多语义化标签", "优化图片标签的alt属性", "使用HTML5新特性"];
         } else if (message.toLowerCase().includes('css')) {
-            reply = "### CSS优化建议
-
-你的CSS可以通过以下方式改进：
-
-1. 使用CSS变量（自定义属性）统一管理颜色和间距
-2. 采用Flexbox或Grid布局简化复杂的排版
-3. 使用媒体查询确保响应式设计
-
-```css
-:root {
-  --primary-color: #3498db;
-  --secondary-color: #2ecc71;
-  --text-color: #333;
-  --spacing-unit: 8px;
-}
-
-.container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: calc(var(--spacing-unit) * 2);
-}
-
-.item {
-  color: var(--text-color);
-  background-color: var(--primary-color);
-  padding: var(--spacing-unit);
-  flex: 1 1 300px;
-}
-
-@media (max-width: 768px) {
-  .container {
-    flex-direction: column;
-  }
-}
-```";
+            reply = "### CSS优化建议\n\n你的CSS可以通过以下方式改进：\n\n1. 使用CSS变量（自定义属性）统一管理颜色和间距\n2. 采用Flexbox或Grid布局简化复杂的排版\n3. 使用媒体查询确保响应式设计\n\n```css\n:root {\n  --primary-color: #3498db;\n  --secondary-color: #2ecc71;\n  --text-color: #333;\n  --spacing-unit: 8px;\n}\n\n.container {\n  display: flex;\n  flex-wrap: wrap;\n  gap: calc(var(--spacing-unit) * 2);\n}\n\n.item {\n  color: var(--text-color);\n  background-color: var(--primary-color);\n  padding: var(--spacing-unit);\n  flex: 1 1 300px;\n}\n\n@media (max-width: 768px) {\n  .container {\n    flex-direction: column;\n  }\n}\n```";
             suggestions = ["使用CSS变量管理颜色", "应用Flexbox布局", "添加响应式设计"];
         } else if (message.toLowerCase().includes('javascript') || message.toLowerCase().includes('js')) {
-            reply = "### JavaScript代码优化建议
-
-你的JavaScript代码可以通过以下方式改进：
-
-1. 使用现代ES6+语法（箭头函数、解构赋值等）
-2. 应用函数式编程原则减少副作用
-3. 使用事件委托减少事件监听器数量
-
-```javascript
-// 旧代码
-function getUser(id) {
-  return fetch('/api/users/' + id)
-    .then(function(response) {
-      return response.json();
-    })
-    .then(function(data) {
-      return data;
-    });
-}
-
-// 改进后的代码
-const getUser = async (id) => {
-  try {
-    const response = await fetch(`/api/users/${id}`);
-    return await response.json();
-  } catch (error) {
-    console.error('获取用户数据失败:', error);
-    return null;
-  }
-};
-```";
+            reply = "### JavaScript代码优化建议\n\n你的JavaScript代码可以通过以下方式改进：\n\n1. 使用现代ES6+语法（箭头函数、解构赋值等）\n2. 应用函数式编程原则减少副作用\n3. 使用事件委托减少事件监听器数量\n\n```javascript\n// 旧代码\nfunction getUser(id) {\n  return fetch('/api/users/' + id)\n    .then(function(response) {\n      return response.json();\n    })\n    .then(function(data) {\n      return data;\n    });\n}\n\n// 改进后的代码\nconst getUser = async (id) => {\n  try {\n    const response = await fetch(`/api/users/${id}`);\n    return await response.json();\n  } catch (error) {\n    console.error('获取用户数据失败:', error);\n    return null;\n  }\n};\n```";
             suggestions = ["使用async/await替代Promise链", "应用事件委托模式", "封装重复使用的功能"];
         } else {
-            reply = "### 编程学习建议
-
-要提高Web开发技能，建议你关注以下几个方面：
-
-1. **掌握基础知识**：深入理解HTML语义化、CSS布局技术和JavaScript核心概念
-2. **学习现代框架**：熟悉React、Vue或Angular等主流前端框架
-3. **关注性能优化**：学习代码分割、懒加载和资源优化技术
-4. **实践项目开发**：通过实际项目积累经验，建立个人作品集
-
-下面是一个学习路线图：
-
-1. 基础阶段：HTML、CSS、JavaScript基础
-2. 进阶阶段：现代JS（ES6+）、响应式设计、CSS预处理器
-3. 框架阶段：选择一个框架深入学习
-4. 专业阶段：性能优化、安全性、可访问性、测试
-
-不要急于学习太多技术，专注于打好基础并掌握一个技术栈是更有效的学习方式。";
+            reply = "### 编程学习建议\n\n要提高Web开发技能，建议你关注以下几个方面：\n\n1. **掌握基础知识**：深入理解HTML语义化、CSS布局技术和JavaScript核心概念\n2. **学习现代框架**：熟悉React、Vue或Angular等主流前端框架\n3. **关注性能优化**：学习代码分割、懒加载和资源优化技术\n4. **实践项目开发**：通过实际项目积累经验，建立个人作品集\n\n下面是一个学习路线图：\n\n1. 基础阶段：HTML、CSS、JavaScript基础\n2. 进阶阶段：现代JS（ES6+）、响应式设计、CSS预处理器\n3. 框架阶段：选择一个框架深入学习\n4. 专业阶段：性能优化、安全性、可访问性、测试\n\n不要急于学习太多技术，专注于打好基础并掌握一个技术栈是更有效的学习方式。";
             suggestions = ["如何提高代码可读性？", "学习响应式设计", "前端框架选择建议"];
         }
         

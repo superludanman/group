@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ai code ide</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, blinkmacsystemfont, 'segoe ui', roboto, oxygen, ubuntu, cantarell, 'open sans', 'helvetica neue', sans-serif;
+        }
+
+        .ide-container {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+    <iframe src="/ide-module/index.html" class="ide-container" id="ide-frame" title="ai code ide">
+    </iframe>
+
+    <script>
+        // 页面加载完成后添加事件监听器
+        document.addEventListener('DOMContentLoaded', function () {
+            const ideFrame = document.getElementById('ide-frame');
+
+            // 监听来自 iframe 的消息
+            window.addEventListener('message', function (event) {
+                console.log('收到 iframe 消息:', event.data);
+
+                // 当 ide 准备就绪时
+                if (event.data.action === 'ideready') {
+                    console.log('ide 已准备就绪');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -12,6 +12,24 @@ from app.modules.module_loader import (
     post_module_handler
 )
 
+# 导入IDE模块的额外处理程序
+try:
+    from app.modules.ide_module import (
+        ai_chat,
+        ai_error_feedback,
+        update_student_model,
+        get_student_model,
+        execute_code,
+        static_check,
+        list_containers,
+        cleanup_session
+    )
+    from app.modules.ide_module_dir.code_executor import CodeSubmission
+    IDE_MODULE_AVAILABLE = True
+except ImportError as e:
+    IDE_MODULE_AVAILABLE = False
+    logging.warning(f"IDE模块后端组件未找到，代码执行功能将不可用: {e}")
+
 # 配置日志
 logger = logging.getLogger(__name__)
 
@@ -63,3 +81,100 @@ async def post_module(module_name: str, request: Request):
         return await handler(request)
     else:
         return {"module": module_name, "status": "模块未找到或未注册"}
+
+# IDE模块特定的API端点（如果可用）
+if IDE_MODULE_AVAILABLE:
+    @api_router.post("/module/ide/ai/chat")
+    async def ide_ai_chat(request: Request):
+        """
+        IDE模块AI聊天端点
+        """
+        return await ai_chat(request)
+
+    @api_router.post("/module/ide/ai/error-feedback")
+    async def ide_ai_error_feedback(request: Request):
+        """
+        IDE模块AI错误反馈端点
+        """
+        return await ai_error_feedback(request)
+
+    @api_router.post("/module/ide/student/update")
+    async def ide_student_update(request: Request):
+        """
+        IDE模块学生模型更新端点
+        """
+        return await update_student_model(request)
+
+    @api_router.get("/module/ide/student/{session_id}")
+    async def ide_get_student_model(session_id: str, request: Request):
+        """
+        IDE模块获取学生模型端点
+        """
+        # 为处理程序添加路径参数
+        request.path_params = {"session_id": session_id}
+        return await get_student_model(request)
+
+    @api_router.get("/module/ide/containers")
+    async def ide_list_containers():
+        """
+        IDE模块列出容器端点
+        """
+        return await list_containers()
+
+    @api_router.post("/module/ide/execute")
+    async def ide_execute_code(request: Request):
+        """
+        IDE模块代码执行端点
+        """
+        code_data = await request.json()
+        code_submission = CodeSubmission(**code_data)
+        return await execute_code(code_submission)
+
+    @api_router.post("/module/ide/static-check")
+    async def ide_static_check(request: Request):
+        """
+        IDE模块静态检查端点
+        """
+        code_data = await request.json()
+        code_submission = CodeSubmission(**code_data)
+        return await static_check(code_submission)
+
+    @api_router.post("/module/ide/cleanup/{session_id}")
+    async def ide_cleanup_session(session_id: str):
+        """
+        IDE模块清理会话端点
+        """
+        return await cleanup_session(session_id)
+        
+    # 为了兼容前端代码中的路径，添加别名路由
+    @api_router.post("/ide/execute")
+    async def ide_execute_code_alias(request: Request):
+        """
+        IDE模块代码执行端点（别名）
+        """
+        code_data = await request.json()
+        code_submission = CodeSubmission(**code_data)
+        return await execute_code(code_submission)
+
+    @api_router.post("/ide/static-check")
+    async def ide_static_check_alias(request: Request):
+        """
+        IDE模块静态检查端点（别名）
+        """
+        code_data = await request.json()
+        code_submission = CodeSubmission(**code_data)
+        return await static_check(code_submission)
+
+    @api_router.post("/ide/cleanup/{session_id}")
+    async def ide_cleanup_session_alias(session_id: str):
+        """
+        IDE模块清理会话端点（别名）
+        """
+        return await cleanup_session(session_id)
+        
+    @api_router.get("/ide/containers")
+    async def ide_list_containers_alias():
+        """
+        IDE模块列出容器端点（别名）
+        """
+        return await list_containers()

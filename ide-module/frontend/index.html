@@ -18,7 +18,7 @@
         <header class="top-header">
             <h1 class="header-title">标题</h1>
             <div class="user-profile">
-                <img src="https://via.placeholder.com/40" alt="用户头像" class="user-avatar">
+                <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRTVFNkU3Ii8+CjxjaXJjbGUgY3g9IjIwIiBjeT0iMTUiIHI9IjUiIGZpbGw9IiM4ODg4ODgiLz4KPHBhdGggZD0iTTIwIDI1QzE1IDI1IDEyIDI3IDEyIDMwTDI4IDMwQzI4IDI3IDI1IDI1IDIwIDI1WiIgZmlsbD0iIzg4ODg4OCIvPgo8L3N2Zz4K" alt="用户头像" class="user-avatar">
             </div>
         </header>
 
@@ -156,33 +156,62 @@
     <!-- AI聊天连接功能 -->
     <script>
     // 初始化marked库配置
-    document.addEventListener('DOMContentLoaded', function() {
+    function initMarked() {
+        console.log('检查 Marked.js 是否加载:', typeof marked);
         // 如果marked存在，配置markdown解析器
-        if (typeof marked !== 'undefined') {
-            marked.use({
-                gfm: true, // 启用GitHub风格的Markdown
-                breaks: true, // 启用换行符号渲染为<br>
-                headerIds: true, // 生成标题ID
-                mangle: false, // 不修改标题ID
-                pedantic: false, // 不羁竞严格的兼容性
-                smartLists: true, // 智能列表
-                smartypants: false, // 不转换引号、破折号等
-                xhtml: false, // 不生成自闭合的空标签
-                langPrefix: 'hljs language-', // 语言前缀，用于代码高亮
-                highlight: function(code, lang) {
-                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                    return hljs.highlight(code, { language }).value;
-                }
-            });
-            console.log('Marked.js配置完成');
+        if (typeof marked !== 'undefined' && marked && typeof marked.use === 'function') {
+            try {
+                marked.use({
+                    gfm: true, // 启用GitHub风格的Markdown
+                    breaks: true, // 启用换行符号渲染为<br>
+                    headerIds: true, // 生成标题ID
+                    mangle: false, // 不修改标题ID
+                    pedantic: false, // 不羁竞严格的兼容性
+                    smartLists: true, // 智能列表
+                    smartypants: false, // 不转换引号、破折号等
+                    xhtml: false, // 不生成自闭合的空标签
+                    langPrefix: 'hljs language-', // 语言前缀，用于代码高亮
+                    highlight: function(code, lang) {
+                        if (typeof hljs !== 'undefined' && hljs && typeof hljs.highlight === 'function') {
+                            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                            return hljs.highlight(code, { language }).value;
+                        }
+                        return code;
+                    }
+                });
+                console.log('Marked.js配置完成');
+                return true;
+            } catch (e) {
+                console.error('Marked.js配置失败:', e);
+                return false;
+            }
         } else {
-            console.error('Marked.js未加载');
+            console.error('Marked.js未加载或不可用:', typeof marked, marked);
+            return false;
         }
+    }
+
+    // 等待所有资源加载完成后再初始化
+    function initWhenReady() {
+        if (typeof marked !== 'undefined') {
+            initMarked();
+        } else {
+            // 如果marked还未加载，稍后再试
+            setTimeout(initWhenReady, 100);
+        }
+    }
+
+    // DOM加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        initWhenReady();
     });
     
     // 定义全局配置
+    // 从环境变量或默认值获取端口配置
+    const ideModulePort = typeof window.IDE_MODULE_PORT !== 'undefined' ? window.IDE_MODULE_PORT : 8080;
+    
     window.aiChatConfig = {
-        backendUrl: 'http://localhost:8080',
+        backendUrl: `http://localhost:${ideModulePort}`,  // 指向ide-module后端服务
         sessionId: 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11)
     };
     
