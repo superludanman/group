@@ -6,11 +6,9 @@ import json
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel
 
-# 尝试相对导入（用于主应用），如果失败则使用绝对导入（用于Docker容器）
-try:
-    from .docker_manager import get_docker_manager
-except ImportError:
-    from docker_manager import get_docker_manager
+# 导入新的静态检查器和预览服务器
+from .static_checker import get_static_checker
+from .preview_server import get_preview_server
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -39,8 +37,9 @@ class CodeExecutor:
     
     def __init__(self):
         """初始化代码执行服务"""
-        self.docker_manager = get_docker_manager()
-        logger.info("CodeExecutor initialized")
+        self.static_checker = get_static_checker()
+        self.preview_server = get_preview_server()
+        logger.info("CodeExecutor initialized with Python implementation")
     
     async def execute(self, code: CodeSubmission) -> ExecutionResult:
         """
@@ -53,12 +52,10 @@ class CodeExecutor:
             执行结果
         """
         try:
-            # 获取或创建容器，使用统一的容器管理逻辑
-            container_id = await self._get_or_create_container(code.session_id)
-            logger.info(f"Using container {container_id} for execute request (session: {code.session_id})")
+            logger.info(f"Executing code for session: {code.session_id}")
             
-            # 执行代码
-            result = await self._run_code_in_container(container_id, code)
+            # 执行代码预览
+            result = await self._run_code_preview(code)
             
             return result
         except Exception as e:
@@ -80,12 +77,10 @@ class CodeExecutor:
             检查结果
         """
         try:
-            # 获取或创建容器，使用统一的容器管理逻辑
-            container_id = await self._get_or_create_container(code.session_id)
-            logger.info(f"Using container {container_id} for static check request (session: {code.session_id})")
+            logger.info(f"Performing static check for session: {code.session_id}")
             
             # 执行静态检查
-            result = await self._run_static_check(container_id, code)
+            result = await self._run_static_check(code)
             
             return result
         except Exception as e:
@@ -96,91 +91,64 @@ class CodeExecutor:
                 "details": str(e)
             }
     
-    async def _get_or_create_container(self, session_id: Optional[str] = None) -> str:
+    async def _run_code_preview(self, code: CodeSubmission) -> ExecutionResult:
         """
-        获取或创建Docker容器
+        运行代码预览
         
         Args:
-            session_id: 会话ID
-            
-        Returns:
-            容器ID
-        """
-        try:
-            # 使用线程池执行阻塞的Docker操作
-            loop = asyncio.get_event_loop()
-            
-            # 先检查是否提供了容器ID而非会话ID
-            if session_id and self.docker_manager.get_container(session_id):
-                logger.info(f"Session ID is already a valid container ID: {session_id}")
-                return session_id
-            
-            # 调用Docker管理器的create_container方法
-            # 该方法会先检查是否已存在相同会话ID的容器
-            # 如果存在，则复用现有容器；如果不存在，则创建新容器
-            container_id = await loop.run_in_executor(None, self.docker_manager.create_container, session_id)
-            logger.info(f"Container management result: {container_id} for session: {session_id}")
-            return container_id
-        except Exception as e:
-            logger.error(f"Error in _get_or_create_container: {str(e)}")
-            raise
-    
-    async def _run_code_in_container(self, container_id: str, code: CodeSubmission) -> ExecutionResult:
-        """
-        在容器中运行代码
-        
-        Args:
-            container_id: 容器ID
             code: 代码提交对象
             
         Returns:
             执行结果
         """
-        # 使用线程池执行阻塞的Docker操作
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None, 
-            self.docker_manager.execute_code,
-            container_id,
-            code.html,
-            code.css,
-            code.js
-        )
-        
-        if result.get("status") == "success":
-            return ExecutionResult(
-                status="success",
-                container_id=result.get("container_id"),
-                preview_url=result.get("preview_url"),
-                local_url=result.get("local_url")
+        try:
+            # 创建预览
+            preview_result = self.preview_server.create_preview(
+                html_code=code.html,
+                css_code=code.css,
+                js_code=code.js,
+                session_id=code.session_id
             )
-        else:
-            return ExecutionResult(
-                status="error",
-                message=result.get("message", "Unknown error"),
-                details=result.get("details")
-            )
+            
+            if preview_result.get("status") == "success":
+                return ExecutionResult(
+                    status="success",
+                    container_id=preview_result.get("session_id"),
+                    preview_url=preview_result.get("preview_url"),
+                    local_url=preview_result.get("preview_url")
+                )
+            else:
+                return ExecutionResult(
+                    status="error",
+                    message=preview_result.get("message", "Unknown error"),
+                    details=preview_result.get("details")
+                )
+        except Exception as e:
+            logger.error(f"Error in _run_code_preview: {str(e)}")
+            raise
     
-    async def _run_static_check(self, container_id: str, code: CodeSubmission) -> Dict[str, Any]:
+    async def _run_static_check(self, code: CodeSubmission) -> Dict[str, Any]:
         """
-        在容器中运行静态检查
+        运行静态检查
         
         Args:
-            container_id: 容器ID
             code: 代码提交对象
             
         Returns:
             检查结果
         """
-        # 这里可以实现代码静态检查
-        # 为简化示例，返回模拟结果
-        return {
-            "status": "success",
-            "errors": [],
-            "warnings": [
-                {"line": 5, "column": 10, "message": "示例警告：未闭合的标签", "severity": "warning"}
-            ]
-        }
+        try:
+            # 使用静态检查器检查所有代码
+            result = self.static_checker.check_all(
+                html_code=code.html,
+                css_code=code.css,
+                js_code=code.js
+            )
+            
+            return result
+        except Exception as e:
+            logger.error(f"Error in _run_static_check: {str(e)}")
+            raise
     
     async def cleanup_session(self, session_id: str) -> bool:
         """
@@ -193,25 +161,14 @@ class CodeExecutor:
             操作是否成功
         """
         try:
-            # 查找与会话ID关联的容器
-            container_id = self.docker_manager.find_container_by_session_id(session_id)
-            if container_id:
-                # 停止并移除容器
-                loop = asyncio.get_event_loop()
-                success = await loop.run_in_executor(
-                    None, 
-                    self.docker_manager.stop_container,
-                    container_id
-                )
-                if success:
-                    logger.info(f"Successfully cleaned up session: {session_id}, container: {container_id}")
-                    return True
-                else:
-                    logger.warning(f"Failed to stop container for session: {session_id}")
-                    return False
+            # 清理预览服务器中的会话
+            success = self.preview_server.cleanup_session(session_id)
+            if success:
+                logger.info(f"Successfully cleaned up session: {session_id}")
+                return True
             else:
-                logger.info(f"No container found for session: {session_id}")
-                return True  # 没有容器需要清理也算成功
+                logger.warning(f"Failed to clean up session: {session_id}")
+                return False
         except Exception as e:
             logger.error(f"Error cleaning up session {session_id}: {str(e)}")
             return False
@@ -220,12 +177,10 @@ class CodeExecutor:
         """关闭服务并清理资源"""
         logger.info("Shutting down CodeExecutor...")
         
-        # 使用线程池执行阻塞的Docker操作
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.docker_manager.shutdown)
+        # 停止预览服务器
+        self.preview_server.stop()
         
         logger.info("CodeExecutor shutdown complete")
-
 
 # 单例模式
 _code_executor_instance = None

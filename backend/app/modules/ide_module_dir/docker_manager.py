@@ -1,4 +1,3 @@
-import docker
 import logging
 import time
 import os
@@ -8,65 +7,39 @@ from datetime import datetime, timedelta
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("DockerManager")
+logger = logging.getLogger("SessionManager")
 
-class DockerManager:
-    """Docker容器管理器，负责创建、启动、停止和监控Docker容器"""
+class SessionManager:
+    """会话管理器，负责管理用户会话"""
     
     def __init__(self, 
-                 base_image: str = "ide-sandbox:latest",
-                 max_containers: int = 10,
-                 container_timeout: int = 300,
-                 network_name: str = "ide-network",
-                 workspace_dir: str = "/workspace"):
+                 max_sessions: int = 100,
+                 session_timeout: int = 3600):
         """
-        初始化Docker管理器
+        初始化会话管理器
         
         Args:
-            base_image: 基础镜像名称
-            max_containers: 最大容器数量
-            container_timeout: 容器超时时间(秒)
-            network_name: Docker网络名称
-            workspace_dir: 容器内工作目录
+            max_sessions: 最大会话数量
+            session_timeout: 会话超时时间(秒)
         """
-        self.client = docker.from_env()
-        self.base_image = base_image
-        self.max_containers = max_containers
-        self.container_timeout = container_timeout
-        self.network_name = network_name
-        self.workspace_dir = workspace_dir
-        self.active_containers: Dict[str, Dict[str, Any]] = {}
+        self.max_sessions = max_sessions
+        self.session_timeout = session_timeout
+        self.active_sessions: Dict[str, Dict[str, Any]] = {}
         
-        # 确保网络存在
-        self._ensure_network()
-        
-        logger.info(f"DockerManager initialized with base image: {base_image}")
+        logger.info(f"SessionManager initialized with max sessions: {max_sessions}")
     
-    def _ensure_network(self) -> None:
-        """确保Docker网络存在"""
-        try:
-            networks = self.client.networks.list(names=[self.network_name])
-            if not networks:
-                logger.info(f"Creating Docker network: {self.network_name}")
-                self.client.networks.create(self.network_name, driver="bridge")
-            else:
-                logger.info(f"Docker network {self.network_name} already exists")
-        except Exception as e:
-            logger.error(f"Error ensuring Docker network: {str(e)}")
-            raise
-    
-    def create_container(self, session_id: Optional[str] = None) -> str:
+    def create_session(self, session_id: Optional[str] = None) -> str:
         """
-        创建新的Docker容器或获取现有容器
+        创建新的会话或获取现有会话
         
         Args:
             session_id: 会话ID，如果未提供则自动生成
             
         Returns:
-            容器ID
+            会话ID
         """
-        # 清理过期容器
-        self.cleanup_expired_containers()
+        # 清理过期会话
+        self.cleanup_expired_sessions()
         
         # 生成会话ID（如果没有提供）
         if not session_id:
@@ -74,358 +47,132 @@ class DockerManager:
             logger.info(f"Generated new session ID: {session_id}")
         else:
             logger.info(f"Using provided session ID: {session_id}")
-
-        # 策略一：如果会话ID已经是一个容器ID，直接复用
-        if session_id in self.active_containers:
-            logger.info(f"Session ID is already a container ID: {session_id}, reusing directly")
-            self.active_containers[session_id]["last_used"] = datetime.now()
-            
-            # 确保容器处于运行状态
-            container = self.active_containers[session_id]["container"]
-            try:
-                container.reload()
-                if container.status != "running":
-                    logger.info(f"Container {session_id} is not running, attempting to start it")
-                    container.start()
-            except Exception as e:
-                logger.warning(f"Error checking container status: {str(e)}")
-            
+        
+        # 检查会话是否已存在
+        if session_id in self.active_sessions:
+            logger.info(f"Session ID already exists: {session_id}, reusing directly")
+            self.active_sessions[session_id]["last_used"] = datetime.now()
             return session_id
         
-        # 策略二：检查是否已存在具有相同会话ID的容器
-        existing_container_id = self.find_container_by_session_id(session_id)
-        if existing_container_id:
-            logger.info(f"Reusing existing container: {existing_container_id} for session: {session_id}")
-            
-            # 确保容器处于运行状态
-            container = self.active_containers[existing_container_id]["container"]
-            try:
-                container.reload()
-                if container.status != "running":
-                    logger.info(f"Container {existing_container_id} is not running, attempting to start it")
-                    container.start()
-            except Exception as e:
-                logger.warning(f"Error checking container status: {str(e)}")
-            
-            # 更新最后使用时间
-            self.active_containers[existing_container_id]["last_used"] = datetime.now()
-            return existing_container_id
-        
-        # 检查是否达到最大容器数量
-        if len(self.active_containers) >= self.max_containers:
-            logger.warning(f"Maximum container limit reached: {self.max_containers}")
-            raise Exception("Maximum container limit reached")
-        
-        # 生成容器名称 - 使用固定前缀和会话ID的前8位字符，避免容器命名冲突
-        container_name = f"ide-sandbox-{session_id[:8]}-{str(uuid.uuid4())[:8]}"
+        # 检查是否达到最大会话数量
+        if len(self.active_sessions) >= self.max_sessions:
+            logger.warning(f"Maximum session limit reached: {self.max_sessions}")
+            raise Exception("Maximum session limit reached")
         
         try:
-            logger.info(f"Creating container: {container_name}")
+            logger.info(f"Creating session: {session_id}")
             
-            # 容器配置
-            container = self.client.containers.run(
-                image=self.base_image,
-                name=container_name,
-                detach=True,
-                network=self.network_name,
-                mem_limit="256m",
-                cpu_quota=50000,  # 50% of CPU
-                cpu_period=100000,
-                restart_policy={"Name": "no"},
-                cap_drop=["ALL"],
-                security_opt=["no-new-privileges"],
-                read_only=False,  # 需要写入权限以生成文件
-                volumes={
-                    # 可以添加特定的卷挂载
-                },
-                environment={
-                    "SESSION_ID": session_id,
-                    "CONTAINER_TIMEOUT": str(self.container_timeout)
-                },
-                command=["http-server", "-p", "3000"]
-            )
-            
-            # 记录容器信息
-            self.active_containers[container.id] = {
-                "container": container,
+            # 记录会话信息
+            self.active_sessions[session_id] = {
                 "session_id": session_id,
                 "created_at": datetime.now(),
-                "last_used": datetime.now(),
-                "name": container_name
+                "last_used": datetime.now()
             }
             
-            logger.info(f"Container created: {container.id} (session: {session_id})")
-            return container.id
+            logger.info(f"Session created: {session_id}")
+            return session_id
             
         except Exception as e:
-            logger.error(f"Error creating container: {str(e)}")
-            # 如果错误是由于同名容器已存在，尝试使用Docker API直接查找该容器
-            if "Conflict" in str(e) and container_name in str(e):
-                try:
-                    existing_containers = self.client.containers.list(all=True, filters={"name": container_name})
-                    if existing_containers:
-                        container = existing_containers[0]
-                        # 确保容器处于运行状态
-                        if container.status != "running":
-                            container.start()
-                        
-                        # 将容器添加到活动容器列表
-                        self.active_containers[container.id] = {
-                            "container": container,
-                            "session_id": session_id,
-                            "created_at": datetime.now(),
-                            "last_used": datetime.now(),
-                            "name": container_name
-                        }
-                        
-                        logger.info(f"Recovered existing container: {container.id} (session: {session_id})")
-                        return container.id
-                except Exception as inner_e:
-                    logger.error(f"Error recovering container: {str(inner_e)}")
-            
-            # 如果无法恢复现有容器，抛出原始异常
+            logger.error(f"Error creating session: {str(e)}")
             raise
     
-    def get_container(self, container_id: str) -> Optional[docker.models.containers.Container]:
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
-        获取指定ID的容器
-        
-        Args:
-            container_id: 容器ID
-            
-        Returns:
-            容器对象，如果不存在则返回None
-        """
-        if container_id in self.active_containers:
-            # 更新最后使用时间
-            self.active_containers[container_id]["last_used"] = datetime.now()
-            return self.active_containers[container_id]["container"]
-        return None
-        
-    def find_container_by_session_id(self, session_id: str) -> Optional[str]:
-        """
-        通过会话ID查找容器
+        获取指定ID的会话
         
         Args:
             session_id: 会话ID
             
         Returns:
-            容器ID，如果不存在则返回None
+            会话对象，如果不存在则返回None
         """
-        for container_id, info in self.active_containers.items():
-            if info["session_id"] == session_id:
-                # 更新最后使用时间
-                self.active_containers[container_id]["last_used"] = datetime.now()
-                return container_id
+        if session_id in self.active_sessions:
+            # 更新最后使用时间
+            self.active_sessions[session_id]["last_used"] = datetime.now()
+            return self.active_sessions[session_id]
         return None
-    
-    def execute_code(self, container_id: str, html_code: str, css_code: str, js_code: str) -> Dict[str, Any]:
+        
+    def find_session_by_id(self, session_id: str) -> Optional[str]:
         """
-        在指定容器中执行代码
+        通过会话ID查找会话
         
         Args:
-            container_id: 容器ID
-            html_code: HTML代码
-            css_code: CSS代码
-            js_code: JavaScript代码
+            session_id: 会话ID
             
         Returns:
-            执行结果字典
+            会话ID，如果不存在则返回None
         """
-        container = self.get_container(container_id)
-        if not container:
-            logger.error(f"Container not found: {container_id}")
-            raise Exception(f"Container not found: {container_id}")
-        
-        try:
-            # 检查容器是否还在运行
-            try:
-                container.reload()  # 刷新容器状态
-                if container.status != "running":
-                    logger.info(f"Container {container_id} is not running, attempting to start it")
-                    container.start()
-                    # 等待容器启动
-                    time.sleep(1)
-                    container.reload()
-                    if container.status != "running":
-                        logger.error(f"Failed to start container {container_id}")
-                        raise Exception(f"Container {container_id} could not be started")
-            except Exception as e:
-                logger.error(f"Error checking container status: {str(e)}")
-                # 尝试创建新容器
-                try:
-                    # 使用原来的会话ID创建新容器
-                    session_id = self.active_containers[container_id]["session_id"]
-                    # 删除旧容器的记录
-                    del self.active_containers[container_id]
-                    # 创建新容器
-                    new_container_id = self.create_container(session_id)
-                    container_id = new_container_id
-                    container = self.get_container(container_id)
-                except Exception as inner_e:
-                    logger.error(f"Error creating new container: {str(inner_e)}")
-                    raise Exception(f"Failed to recover container: {str(inner_e)}")
-            
+        if session_id in self.active_sessions:
             # 更新最后使用时间
-            self.active_containers[container_id]["last_used"] = datetime.now()
-            
-            # 创建临时文件
-            file_id = str(uuid.uuid4())
-            html_file = f"index_{file_id}.html"
-            
-            # 构建HTML文件内容
-            html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Code Preview</title>
-                <style>
-                {css_code}
-                </style>
-            </head>
-            <body>
-                {html_code}
-                <script>
-                try {{
-                    {js_code}
-                }} catch (error) {{
-                    console.error('JavaScript error:', error);
-                    const errorDiv = document.createElement('div');
-                    errorDiv.style.position = 'fixed';
-                    errorDiv.style.bottom = '10px';
-                    errorDiv.style.left = '10px';
-                    errorDiv.style.right = '10px';
-                    errorDiv.style.padding = '10px';
-                    errorDiv.style.backgroundColor = '#ffebee';
-                    errorDiv.style.color = '#c62828';
-                    errorDiv.style.border = '1px solid #ef9a9a';
-                    errorDiv.style.borderRadius = '4px';
-                    errorDiv.style.zIndex = '9999';
-                    errorDiv.textContent = 'JavaScript error: ' + error.message;
-                    document.body.appendChild(errorDiv);
-                }}
-                </script>
-            </body>
-            </html>
-            """
-            
-            # 写入文件到容器
-            # 使用Base64编码来避免特殊字符引起的问题
-            import base64
-            encoded_content = base64.b64encode(html_content.encode('utf-8')).decode('utf-8')
-            exec_result = container.exec_run(
-                cmd=f"bash -c \"mkdir -p {self.workspace_dir}/temp && echo '{encoded_content}' | base64 -d > {self.workspace_dir}/temp/{html_file}\"",
-                privileged=False
-            )
-            
-            if exec_result.exit_code != 0:
-                logger.error(f"Error writing code file: {exec_result.output.decode('utf-8')}")
-                return {
-                    "status": "error",
-                    "message": "Failed to write code file",
-                    "details": exec_result.output.decode('utf-8')
-                }
-            
-            # 启动预览服务
-            preview_url = f"http://{container.name}:3000/temp/{html_file}"
-            
-            # 添加跨域访问头部
-            header_cmd = f"echo \"Access-Control-Allow-Origin: *\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\nAccess-Control-Allow-Headers: *\n\" > {self.workspace_dir}/temp/headers.txt"
-            container.exec_run(cmd=["bash", "-c", header_cmd])
-            
-            # 给http-server配置跨域访问头部
-            cors_cmd = f"cd {self.workspace_dir} && pkill -f 'http-server' && http-server -p 3000 --cors -c-1 &"
-            container.exec_run(cmd=["bash", "-c", cors_cmd])
-            
-            return {
-                "status": "success",
-                "container_id": container_id,
-                "file_id": file_id,
-                "preview_url": preview_url,
-                "local_url": f"http://localhost:3000/temp/{html_file}?t={int(time.time())}"
-            }
-            
-        except Exception as e:
-            logger.error(f"Error executing code: {str(e)}")
-            return {
-                "status": "error",
-                "message": "Error executing code",
-                "details": str(e)
-            }
+            self.active_sessions[session_id]["last_used"] = datetime.now()
+            return session_id
+        return None
     
-    def stop_container(self, container_id: str) -> bool:
+    def stop_session(self, session_id: str) -> bool:
         """
-        停止并移除指定容器
+        停止并移除指定会话
         
         Args:
-            container_id: 容器ID
+            session_id: 会话ID
             
         Returns:
             操作是否成功
         """
-        container = self.get_container(container_id)
-        if not container:
-            logger.warning(f"Container not found for stopping: {container_id}")
+        if session_id not in self.active_sessions:
+            logger.warning(f"Session not found for stopping: {session_id}")
             return False
         
         try:
-            logger.info(f"Stopping container: {container_id}")
-            container.stop(timeout=5)
-            container.remove(force=True)
+            logger.info(f"Stopping session: {session_id}")
             
-            # 从活动容器列表中移除
-            if container_id in self.active_containers:
-                del self.active_containers[container_id]
+            # 从活动会话列表中移除
+            if session_id in self.active_sessions:
+                del self.active_sessions[session_id]
                 
             return True
         except Exception as e:
-            logger.error(f"Error stopping container: {str(e)}")
+            logger.error(f"Error stopping session: {str(e)}")
             return False
     
-    def cleanup_expired_containers(self) -> int:
+    def cleanup_expired_sessions(self) -> int:
         """
-        清理过期的容器
+        清理过期的会话
         
         Returns:
-            清理的容器数量
+            清理的会话数量
         """
         now = datetime.now()
-        expired_containers = []
+        expired_sessions = []
         
-        # 查找过期容器
-        for container_id, info in self.active_containers.items():
+        # 查找过期会话
+        for session_id, info in self.active_sessions.items():
             last_used = info.get("last_used", info.get("created_at"))
-            if now - last_used > timedelta(seconds=self.container_timeout):
-                expired_containers.append(container_id)
+            if now - last_used > timedelta(seconds=self.session_timeout):
+                expired_sessions.append(session_id)
         
-        # 停止过期容器
+        # 停止过期会话
         count = 0
-        for container_id in expired_containers:
-            if self.stop_container(container_id):
+        for session_id in expired_sessions:
+            if self.stop_session(session_id):
                 count += 1
         
         if count > 0:
-            logger.info(f"Cleaned up {count} expired containers")
+            logger.info(f"Cleaned up {count} expired sessions")
         
         return count
     
-    def list_containers(self) -> List[Dict[str, Any]]:
+    def list_sessions(self) -> List[Dict[str, Any]]:
         """
-        列出所有活动容器
+        列出所有活动会话
         
         Returns:
-            容器信息列表
+            会话信息列表
         """
         result = []
-        for container_id, info in self.active_containers.items():
-            container = info["container"]
+        for session_id, info in self.active_sessions.items():
             result.append({
-                "id": container_id,
-                "name": info["name"],
+                "id": session_id,
                 "session_id": info["session_id"],
-                "status": container.status,
                 "created_at": info["created_at"].isoformat(),
                 "last_used": info["last_used"].isoformat(),
                 "age_seconds": (datetime.now() - info["created_at"]).total_seconds()
@@ -433,34 +180,29 @@ class DockerManager:
         return result
     
     def shutdown(self) -> None:
-        """关闭所有容器并清理资源"""
-        logger.info("Shutting down DockerManager...")
+        """关闭所有会话并清理资源"""
+        logger.info("Shutting down SessionManager...")
         
-        # 停止所有容器
-        container_ids = list(self.active_containers.keys())
-        for container_id in container_ids:
-            self.stop_container(container_id)
+        # 清理所有会话
+        session_ids = list(self.active_sessions.keys())
+        for session_id in session_ids:
+            self.stop_session(session_id)
         
-        logger.info("DockerManager shutdown complete")
-
+        logger.info("SessionManager shutdown complete")
 
 # 单例模式
-_docker_manager_instance = None
+_session_manager_instance = None
 
-def get_docker_manager() -> DockerManager:
-    """获取DockerManager单例"""
-    global _docker_manager_instance
-    if _docker_manager_instance is None:
+def get_session_manager() -> SessionManager:
+    """获取SessionManager单例"""
+    global _session_manager_instance
+    if _session_manager_instance is None:
         # 从环境变量获取配置
-        base_image = os.environ.get("SANDBOX_IMAGE", "ide-sandbox:latest")
-        max_containers = int(os.environ.get("MAX_CONTAINERS", "10"))
-        container_timeout = int(os.environ.get("CONTAINER_TIMEOUT", "300"))
-        network_name = os.environ.get("DOCKER_NETWORK", "ide-network")
+        max_sessions = int(os.environ.get("MAX_SESSIONS", "100"))
+        session_timeout = int(os.environ.get("SESSION_TIMEOUT", "3600"))
         
-        _docker_manager_instance = DockerManager(
-            base_image=base_image,
-            max_containers=max_containers,
-            container_timeout=container_timeout,
-            network_name=network_name
+        _session_manager_instance = SessionManager(
+            max_sessions=max_sessions,
+            session_timeout=session_timeout
         )
-    return _docker_manager_instance
+    return _session_manager_instance

@@ -13,37 +13,100 @@ logger = logging.getLogger(__name__)
 # 导入模块加载器
 from .module_loader import register_module
 
-# 导入IDE模块的处理程序
+# 导入代码执行器
 try:
-    # 直接在这里实现简单的处理函数，因为我们已经修改了导入方式
-    async def ai_chat(request: Request):
-        return {"status": "mock", "message": "Mock AI chat response"}
-    
-    async def ai_error_feedback(request: Request):
-        return {"status": "mock", "message": "Mock AI error feedback"}
-    
-    async def update_student_model(request: Request):
-        return {"status": "mock", "message": "Mock student model update"}
-    
-    async def get_student_model(request: Request):
-        return {"status": "mock", "message": "Mock student model"}
-    
-    async def execute_code(code):
-        return {"status": "mock", "message": "Mock code execution"}
-    
-    async def static_check(code):
-        return {"status": "mock", "message": "Mock static check"}
-    
-    async def list_containers():
-        return {"status": "mock", "message": "Mock container list"}
-    
-    async def cleanup_session(session_id: str):
-        return {"status": "mock", "message": "Mock session cleanup"}
-    
+    from .ide_module_dir.code_executor import get_code_executor, CodeSubmission
     IDE_MODULE_AVAILABLE = True
 except Exception as e:
-    logger.warning(f"无法创建IDE模块后端组件: {e}")
+    logger.warning(f"无法导入IDE模块后端组件: {e}")
     IDE_MODULE_AVAILABLE = False
+
+# 获取代码执行器实例
+code_executor = get_code_executor() if IDE_MODULE_AVAILABLE else None
+
+async def ai_chat(request: Request):
+    """AI聊天功能"""
+    return {"status": "mock", "message": "Mock AI chat response"}
+
+async def ai_error_feedback(request: Request):
+    """AI错误反馈功能"""
+    return {"status": "mock", "message": "Mock AI error feedback"}
+
+async def update_student_model(request: Request):
+    """更新学生模型"""
+    return {"status": "mock", "message": "Mock student model update"}
+
+async def get_student_model(request: Request):
+    """获取学生模型"""
+    return {"status": "mock", "message": "Mock student model"}
+
+async def execute_code(code: CodeSubmission):
+    """
+    执行代码
+    
+    Args:
+        code: 代码提交对象
+        
+    Returns:
+        执行结果
+    """
+    if not IDE_MODULE_AVAILABLE or not code_executor:
+        return {"status": "error", "message": "IDE模块不可用"}
+    
+    try:
+        result = await code_executor.execute(code)
+        return result.dict()
+    except Exception as e:
+        logger.error(f"代码执行错误: {str(e)}")
+        return {"status": "error", "message": f"代码执行错误: {str(e)}"}
+
+async def static_check(code: CodeSubmission):
+    """
+    静态检查代码
+    
+    Args:
+        code: 代码提交对象
+        
+    Returns:
+        检查结果
+    """
+    if not IDE_MODULE_AVAILABLE or not code_executor:
+        return {"status": "error", "message": "IDE模块不可用"}
+    
+    try:
+        result = await code_executor.static_check(code)
+        return result
+    except Exception as e:
+        logger.error(f"静态检查错误: {str(e)}")
+        return {"status": "error", "message": f"静态检查错误: {str(e)}"}
+
+async def list_containers():
+    """列出活动会话"""
+    # 在Python方案中，这实际上是列出活动会话
+    return {"status": "success", "message": "Python方案中无容器列表"}
+
+async def cleanup_session(session_id: str):
+    """
+    清理会话
+    
+    Args:
+        session_id: 会话ID
+        
+    Returns:
+        清理结果
+    """
+    if not IDE_MODULE_AVAILABLE or not code_executor:
+        return {"status": "error", "message": "IDE模块不可用"}
+    
+    try:
+        success = await code_executor.cleanup_session(session_id)
+        if success:
+            return {"status": "success", "message": f"会话 {session_id} 清理成功"}
+        else:
+            return {"status": "error", "message": f"会话 {session_id} 清理失败"}
+    except Exception as e:
+        logger.error(f"会话清理错误: {str(e)}")
+        return {"status": "error", "message": f"会话清理错误: {str(e)}"}
 
 async def get_handler() -> Dict[str, Any]:
     """
