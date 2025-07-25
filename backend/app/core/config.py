@@ -28,7 +28,7 @@ class Settings(BaseModel):
     # ]
     
     # 日志级别
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
 
 # MySQL数据库连接URL（请替换为你的实际信息）
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:12345678@localhost:3306/HTML_AI?charset=utf8mb4"

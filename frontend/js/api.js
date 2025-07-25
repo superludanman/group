@@ -3,8 +3,15 @@
  * 封装与后端API交互的函数
  */
 
+// 从环境变量或默认值获取后端端口
+// 开发者注意：请在项目根目录的.env文件中配置端口，而非修改此处硬编码
+const backendPort = (typeof window !== 'undefined' && window.ENV_VARS) ? 
+                   window.ENV_VARS.BACKEND_PORT : 
+                   (typeof window !== 'undefined' && window.envConfig ? 
+                    window.envConfig.get('BACKEND_PORT') : 8000);
+
 // API基础URL
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = `http://localhost:${backendPort}/api`;
 
 // API客户端对象
 const ApiClient = {

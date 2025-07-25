@@ -66,15 +66,26 @@ def load_all_modules() -> None:
     """
     modules_dir = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, modules_dir)
+    sys.path.insert(0, os.path.dirname(modules_dir))  # 添加 app 目录到路径
     
     for file in os.listdir(modules_dir):
+        # 跳过目录和特殊文件
+        if os.path.isdir(os.path.join(modules_dir, file)):
+            continue
         if file.endswith('.py') and file != '__init__.py' and file != os.path.basename(__file__):
             module_name = file[:-3]  # 移除.py扩展名
             try:
-                importlib.import_module(module_name)
+                # 尝试使用绝对导入
+                importlib.import_module(f"app.modules.{module_name}")
                 logger.info(f"已加载模块文件: {module_name}")
             except Exception as e:
                 logger.error(f"加载模块 {module_name} 时出错: {str(e)}")
+                try:
+                    # 备用方案：尝试直接导入
+                    importlib.import_module(module_name)
+                    logger.info(f"已加载模块文件: {module_name}")
+                except Exception as e2:
+                    logger.error(f"备用方案加载模块 {module_name} 时也出错: {str(e2)}")
     
     logger.info(f"已加载 {len(registered_modules)} 个模块: {list(registered_modules.keys())}")
 
