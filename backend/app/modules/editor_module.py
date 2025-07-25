@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # 导入模块加载器
-from .module_loader import register_module
+from app.modules.module_loader import register_module
 
 async def get_handler() -> Dict[str, Any]:
     """

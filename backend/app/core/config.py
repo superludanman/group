@@ -6,6 +6,8 @@
 
 import os
 from pydantic import BaseModel
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 class Settings(BaseModel):
     """应用程序设置"""
@@ -27,6 +29,18 @@ class Settings(BaseModel):
     
     # 日志级别
     LOG_LEVEL: str = "INFO"
+
+# MySQL数据库连接URL（请替换为你的实际信息）
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:12345678@localhost:3306/HTML_AI?charset=utf8mb4"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True,
+    echo=True,  # 可选，调试用
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 # 创建全局设置对象
 settings = Settings()

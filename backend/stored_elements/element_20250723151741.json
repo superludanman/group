@@ -1,0 +1,13 @@
+{
+  "selector": "/html/body/div[1]/h2[1]",
+  "outerHTML": "<h2>使用 h 元素表示标题</h2>",
+  "bbox": {
+    "x": 174.33334350585938,
+    "y": 172.7916717529297,
+    "width": 220,
+    "height": 34.66666793823242
+  },
+  "tagName": "h2",
+  "classList": [],
+  "pageURL": "http://localhost:8080/pages/index03.html"
+}
