@@ -10,10 +10,11 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import signal
 import sys
-from dotenv import load_dotenv
+# Removed dotenv import as we're using environment variables from the main app
+# from dotenv import load_dotenv
 
-# 加载环境变量
-load_dotenv()
+# Using environment variables from the main app instead of loading .env file
+# load_dotenv()
 
 # 尝试相对导入（用于主应用），如果失败则使用绝对导入（用于Docker容器）
 try:
