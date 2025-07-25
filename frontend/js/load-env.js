@@ -8,7 +8,11 @@ const defaultEnv = {
     BACKEND_PORT: 8002,
     IDE_MODULE_PORT: 8080,
     FRONTEND_PORT: 9000,
-    PREVIEW_PORT: 8081
+    PREVIEW_PORT: 8081,
+    OPENAI_API_BASE: 'https://api.openai.com/v1',
+    OPENAI_MODEL: 'gpt-4o-mini',
+    OPENAI_MAX_TOKENS: 1024,
+    OPENAI_TEMPERATURE: 0.7
 };
 
 // 存储环境变量的对象

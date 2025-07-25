@@ -56,7 +56,11 @@ async def get_env_vars():
         "BACKEND_PORT",
         "IDE_MODULE_PORT", 
         "FRONTEND_PORT",
-        "PREVIEW_PORT"
+        "PREVIEW_PORT",
+        "OPENAI_API_BASE",
+        "OPENAI_MODEL",
+        "OPENAI_MAX_TOKENS",
+        "OPENAI_TEMPERATURE"
     ]
     
     for var in allowed_vars:

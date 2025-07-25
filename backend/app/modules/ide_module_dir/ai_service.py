@@ -28,10 +28,10 @@ logger.setLevel(logging.DEBUG)
 # 手动加载环境变量（覆盖系统环境变量）
 def load_env_file():
     """手动加载环境变量文件"""
-    # 获取当前文件所在目录，然后向上三级到达backend目录
+    # 获取当前文件所在目录，然后向上四级到达项目根目录
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-    env_path = os.path.join(backend_dir, '.env')
+    project_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+    env_path = os.path.join(project_root_dir, '.env')
     logger.debug(f"环境变量文件路径: {env_path}")
     logger.debug(f"环境变量文件是否存在: {os.path.exists(env_path)}")
     
