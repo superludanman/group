@@ -5,7 +5,7 @@
 
 // 定义默认环境变量
 const defaultEnv = {
-    BACKEND_PORT: 8002,
+    BACKEND_PORT: 8000,
     IDE_MODULE_PORT: 8080,
     FRONTEND_PORT: 9000,
     PREVIEW_PORT: 8081,

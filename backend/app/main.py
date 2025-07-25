@@ -66,5 +66,7 @@ async def startup_event():
 if __name__ == "__main__":
     import os
     logger.info("启动AI HTML学习平台后端")
-    port = int(os.environ.get("BACKEND_PORT", "8002"))
+    # 从环境变量获取端口配置，如果没有设置则使用默认值8000
+    # 开发者注意：请在项目根目录的.env文件中配置端口，而非修改此处硬编码
+    port = int(os.environ.get("BACKEND_PORT", "8000"))
     uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)

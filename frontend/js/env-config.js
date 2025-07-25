@@ -4,8 +4,9 @@
  */
 
 // 默认配置
+// 开发者注意：请在项目根目录的.env文件中配置端口，而非修改此处默认值
 const defaultConfig = {
-    BACKEND_PORT: 8002,
+    BACKEND_PORT: 8000,
     IDE_MODULE_PORT: 8080,
     FRONTEND_PORT: 9000
 };

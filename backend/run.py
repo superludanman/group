@@ -75,8 +75,9 @@ def main():
         logger.error("错误：未找到所需的包。请先运行'pip install -r requirements.txt'。")
         return False
     
-    # 获取端口配置，默认为8002
-    port = int(os.environ.get("BACKEND_PORT", "8002"))
+    # 获取端口配置，默认为8000
+    # 开发者注意：请在项目根目录的.env文件中配置端口，而非修改此处硬编码
+    port = int(os.environ.get("BACKEND_PORT", "8000"))
     host = "0.0.0.0"
     
     logger.info(f"启动服务器，地址为http://localhost:{port}")
