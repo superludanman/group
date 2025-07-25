@@ -21,6 +21,7 @@ var/
 *.egg
 venv/
 .venv/
+.env
 
 # 虚拟环境
 backend/venv/
