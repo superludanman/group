@@ -50,6 +50,7 @@ temp/
 .temp/
 *.tmp
 .cache/
+backend/stored_elements
 
 # 前端相关
 node_modules/
