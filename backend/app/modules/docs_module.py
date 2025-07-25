@@ -1,12 +1,13 @@
 from typing import Dict, Any
-from fastapi import Request
+from fastapi import Request, Depends
 import json
 import os
 import logging
 
 from app.modules.module_loader import register_module
 from app.core.models import Tag, UserTime
-from app.core.config import SessionLocal
+from app.core.config import get_db
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +34,12 @@ async def get_handler() -> Dict[str, Any]:
             "error": str(e)
         }
 
-async def post_handler(request: Request) -> dict:
+async def post_handler(request: Request, db: Session = Depends(get_db)) -> dict:
     data = await request.json()
     action = data.get("action")
     if action == "record_time":
         base_time = int(data.get("base_time", 0))
         advanced_time = int(data.get("advanced_time", 0))
-        db = SessionLocal()
         try:
             user_time = db.query(UserTime).first()
             if user_time:
@@ -51,13 +51,11 @@ async def post_handler(request: Request) -> dict:
             db.commit()
             return {"status": "success", "message": "记录成功"}
         except Exception as e:
+            db.rollback()
             return {"status": "error", "message": f"数据库写入失败: {str(e)}"}
-        finally:
-            db.close()
     tag_name = data.get("tag_name")
     if not tag_name:
         return {"status": "error", "message": "缺少 tag_name"}
-    db = SessionLocal()
     try:
         tag_data = {}
         for level in ['basic', 'intermediate', 'advanced', 'expert']:
@@ -75,8 +73,7 @@ async def post_handler(request: Request) -> dict:
             }
         }
     except Exception as e:
+        db.rollback()
         return {"status": "error", "message": f"后端异常: {str(e)}"}
-    finally:
-        db.close()
 
 register_module("docs_module", get_handler, post_handler) 
