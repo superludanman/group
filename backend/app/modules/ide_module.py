@@ -204,7 +204,7 @@ async def get_student_model(request: Request):
             "message": f"获取学生模型错误: {str(e)}"
         }
 
-async def execute_code(code: CodeSubmission):
+async def execute_code(code):
     """
     执行代码
     
@@ -218,6 +218,15 @@ async def execute_code(code: CodeSubmission):
         return {"status": "error", "message": "IDE模块不可用"}
     
     try:
+        # 确保code是CodeSubmission类型
+        if not hasattr(code, 'html'):
+            return {"status": "error", "message": "无效的代码提交"}
+        
+        result = await code_executor.execute(code)
+        return result
+    except Exception as e:
+        logger.error(f"执行代码时出错: {str(e)}", exc_info=True)
+        return {"status": "error", "message": f"执行代码时出错: {str(e)}"}
         result = await code_executor.execute(code)
         return result.dict()
     except Exception as e:

@@ -7,8 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "启动AI HTML学习平台..."
 
-# 启动主后端服务 (8000端口)
-echo "启动主后端服务 (端口 8000)..."
+# 启动主后端服务 (8002端口)
+echo "启动主后端服务 (端口 8002)..."
 cd "$SCRIPT_DIR/backend"
 # 使用项目的Python虚拟环境
 if [ -f "venv/bin/activate" ]; then
@@ -16,6 +16,12 @@ if [ -f "venv/bin/activate" ]; then
     echo "已激活虚拟环境"
 else
     echo "警告：未找到虚拟环境，使用系统Python"
+fi
+
+# 在启动Python之前加载环境变量
+if [ -f ".env" ]; then
+    echo "加载环境变量文件: .env"
+    export $(cat .env | xargs)
 fi
 
 nohup python run.py > "$SCRIPT_DIR/main_backend.log" 2>&1 &
@@ -33,12 +39,12 @@ then
 fi
 
 # 启动HTTP服务器，代理API请求到后端服务
-nohup http-server -p 9000 --proxy http://localhost:8000 > "$SCRIPT_DIR/frontend.log" 2>&1 &
+nohup http-server -p 9000 --proxy http://localhost:8002 > "$SCRIPT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 cd "$SCRIPT_DIR"
 
 echo "所有服务已启动！"
-echo "主后端服务 PID: $MAIN_BACKEND_PID (端口 8000)"
+echo "主后端服务 PID: $MAIN_BACKEND_PID (端口 8002)"
 echo "前端服务 PID: $FRONTEND_PID (端口 9000)"
 echo ""
 echo "访问地址：http://localhost:9000"

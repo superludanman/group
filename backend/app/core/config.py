@@ -26,7 +26,7 @@ class Settings(BaseModel):
     # ]
     
     # 日志级别
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
 
 # 创建全局设置对象
 settings = Settings()

@@ -12,14 +12,43 @@ from pathlib import Path
 
 # 配置日志
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('backend.log')
+    ]
 )
 logger = logging.getLogger("run")
+
+def load_env():
+    """手动加载环境变量文件"""
+    env_path = Path(__file__).parent / '.env'
+    logger.info(f"环境变量文件路径: {env_path}")
+    logger.info(f"环境变量文件是否存在: {env_path.exists()}")
+    
+    if env_path.exists():
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value
+                    logger.info(f"设置环境变量: {key}={value[:10]}..." if len(value) > 10 else f"设置环境变量: {key}={value}")
+    else:
+        logger.warning(f"未找到环境变量文件: {env_path}")
 
 def main():
     """启动应用程序。"""
     logger.info("启动AI HTML学习平台后端")
+    
+    # 加载环境变量
+    load_env()
+    
+    # 打印环境变量信息
+    logger.info(f"OPENAI_API_KEY: {os.environ.get('OPENAI_API_KEY', 'Not set')[:20] if os.environ.get('OPENAI_API_KEY') else 'Not set'}")
+    logger.info(f"OPENAI_API_BASE: {os.environ.get('OPENAI_API_BASE', 'Not set')}")
+    logger.info(f"OPENAI_MODEL: {os.environ.get('OPENAI_MODEL', 'Not set')}")
     
     # 检查是否在正确的目录中
     if not Path("app/main.py").exists():
@@ -39,7 +68,7 @@ def main():
         return False
     
     # 启动应用程序
-    port = 8000
+    port = 8002  # 使用不同的端口
     host = "0.0.0.0"
     
     logger.info(f"启动服务器，地址为http://localhost:{port}")

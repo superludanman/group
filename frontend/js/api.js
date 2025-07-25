@@ -4,7 +4,7 @@
  */
 
 // API基础URL
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8002/api';
 
 // API客户端对象
 const ApiClient = {

@@ -7,6 +7,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import uvicorn
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 加载环境变量
+env_path = Path(__file__).parent.parent / '.env'
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+    logging.info(f"已加载环境变量文件: {env_path}")
+    logging.info(f"OPENAI_API_KEY: {openai_key[:10] if (openai_key := __import__('os').environ.get('OPENAI_API_KEY')) else 'Not set'}")
+    logging.info(f"OPENAI_API_BASE: {__import__('os').environ.get('OPENAI_API_BASE', 'Not set')}")
+    logging.info(f"OPENAI_MODEL: {__import__('os').environ.get('OPENAI_MODEL', 'Not set')}")
 
 # 导入API路由
 from app.api.router import api_router
