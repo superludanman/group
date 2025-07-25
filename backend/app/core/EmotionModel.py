@@ -23,6 +23,10 @@ model_dir = current_dir / "best_model" / "bert-base-uncased"
 
 print(f"正在从 {model_dir} 加载模型...")
 
+print("注意：需要确保模型文件存在于指定路径，否则会加载失败")
+print("如果没有模型文件，可以修改此代码使用在线模型加载方式")
+
+
 # 加载模型和tokenizer
 try:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification

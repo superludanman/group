@@ -17,6 +17,16 @@ from app.core.knowledge_map import knowledge_map
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
+
+# 尝试导入情绪识别模块
+try:
+    from app.core.EmotionModel import EmotionModel
+    EMOTION_MODEL_AVAILABLE = True
+except ImportError:
+    logging.warning("情绪识别模型未正确加载，请检查模型文件和依赖")
+    EMOTION_MODEL_AVAILABLE = False
+
+
 # 配置日志
 logger = logging.getLogger(__name__)
 
@@ -107,6 +117,13 @@ async def emotion(request: Request):
     """
     情绪分析API端点
     """
+    if not EMOTION_MODEL_AVAILABLE:
+        return {
+            "emotion": "未知",
+            "state": "error",
+            "message": "情绪识别模型不可用，请检查模型文件和依赖"
+        }
+
     response = await request.json()
     text = response["text"]
     return await EmotionModel(text)
