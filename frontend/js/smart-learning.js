@@ -39,34 +39,60 @@ class SmartLearningAssistant {
         console.log('🧠 智能学习助手初始化中...');
         
         try {
-            // 检查v2 API是否可用
-            await this.checkApiStatus();
+            // 检查API状态
+            const apiStatus = await this.checkApiStatus();
+            this.apiStatus = apiStatus;
             
             // 初始化行为追踪
             this.initializeBehaviorTracking();
             
-            // 创建智能功能UI
-            this.createSmartUI();
-            
-            // 获取初始学习者模型
-            await this.refreshLearnerModel();
+            // 获取初始学习者模型（如果API支持）
+            if (apiStatus.version === '2.0') {
+                await this.refreshLearnerModel();
+            }
             
             console.log('✅ 智能学习助手初始化完成');
             
         } catch (error) {
             console.error('❌ 智能学习助手初始化失败:', error);
-            this.showErrorMessage('智能功能初始化失败，将使用基础功能');
+            // 即使API不可用，也初始化基本的行为追踪功能
+            this.initializeBehaviorTracking();
+            this.showErrorMessage('智能功能部分可用，将使用基础功能');
         }
     }
     
     async checkApiStatus() {
-        const response = await fetch(`${this.apiBase}/api/v2/info`);
-        if (!response.ok) {
-            throw new Error('v2 API不可用');
+        try {
+            // 首先尝试检查v2 API
+            const response = await fetch(`${this.apiBase}/api/v2/info`);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📊 v2 API状态:', data);
+                return data;
+            } else {
+                // 如果v2 API不可用，尝试检查现有的API
+                const healthResponse = await fetch(`/api/health`);
+                if (healthResponse.ok) {
+                    console.log('✅ 主API可用，但v2 API不可用');
+                    return { version: '1.0', status: 'partial' };
+                } else {
+                    throw new Error('API不可用');
+                }
+            }
+        } catch (error) {
+            // 如果v2 API不可用，检查主API是否可用
+            try {
+                const healthResponse = await fetch(`/api/health`);
+                if (healthResponse.ok) {
+                    console.log('✅ 主API可用，但v2 API不可用');
+                    return { version: '1.0', status: 'partial' };
+                } else {
+                    throw new Error('API不可用');
+                }
+            } catch (healthError) {
+                throw new Error('API不可用');
+            }
         }
-        const data = await response.json();
-        console.log('📊 v2 API状态:', data);
-        return data;
     }
     
     initializeBehaviorTracking() {

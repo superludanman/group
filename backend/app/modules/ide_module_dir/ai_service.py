@@ -26,6 +26,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AIService")
 
+# 调试信息
+api_key = os.environ.get("OPENAI_API_KEY", "")
+api_base = os.environ.get("OPENAI_API_BASE", "")
+model = os.environ.get("OPENAI_MODEL", "")
+logger.info(f"Loaded API config - Key: {'*' * min(20, len(api_key)) if api_key else 'None'}, Base: {api_base}, Model: {model}")
+
+# 确保API密钥以sk-开头（如果是ModelScope）
+if api_key and not api_key.startswith("sk-"):
+    logger.warning("API密钥可能格式不正确，ModelScope的API密钥通常以'sk-'开头")
+
 
 class AIService:
     """AI服务类 - 提供与LLM API的交互"""
