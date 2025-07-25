@@ -23,8 +23,8 @@ from fastapi import HTTPException
 try:
     from app.core.EmotionModel import EmotionModel
     EMOTION_MODEL_AVAILABLE = True
-except ImportError:
-    logging.warning("情绪识别模型未正确加载，请检查模型文件和依赖")
+except Exception as e:
+    logging.warning(f"情绪识别模型未正确加载，请检查模型文件和依赖: {e}")
     EMOTION_MODEL_AVAILABLE = False
 
 

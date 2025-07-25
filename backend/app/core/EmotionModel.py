@@ -28,6 +28,10 @@ print("如果没有模型文件，可以修改此代码使用在线模型加载�
 
 
 # 加载模型和tokenizer
+model = None
+tokenizer = None
+device = None
+
 try:
     from transformers import AutoTokenizer, AutoModelForSequenceClassification
     
@@ -60,7 +64,10 @@ except Exception as e:
     print("2. 内存不足，请关闭其他程序释放内存")
     print("3. 模型路径不正确")
     print("\n请检查以上问题后重试。")
-    sys.exit(1)
+    # 不退出程序，而是继续运行但标记模型不可用
+    model = None
+    tokenizer = None
+    device = None
 
 # 情感标签映射
 label_map = {0: '负面', 1: '中性', 2: '正面'}
@@ -80,6 +87,14 @@ async def EmotionModel(text):
                 'message': str   # 详细信息
             }
     """
+    # 检查模型是否可用
+    if model is None or tokenizer is None:
+        return {
+            'emotion': '未知',
+            'state': 'error',
+            'message': '情绪识别模型不可用，请检查模型文件和依赖'
+        }
+        
     try:
         if not text or not isinstance(text, str):
             return {
