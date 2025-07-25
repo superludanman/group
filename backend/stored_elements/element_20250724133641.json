@@ -1,0 +1,13 @@
+{
+  "selector": "/html/body/div[1]/h2[2]",
+  "outerHTML": "<h2>用 <p> 段落组织文本</p></h2>",
+  "bbox": {
+    "x": 217.33334350585938,
+    "y": 508.8958435058594,
+    "width": 144,
+    "height": 89.33333587646484
+  },
+  "tagName": "h2",
+  "classList": [],
+  "pageURL": "http://localhost:8080/pages/index01.html"
+}

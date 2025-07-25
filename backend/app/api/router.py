@@ -12,6 +12,21 @@ from app.modules.module_loader import (
     get_module_handler,
     post_module_handler
 )
+from app.core.models import UserKnowledge
+from app.core.config import SessionLocal
+from app.core.knowledge_map import knowledge_map
+from sqlalchemy.orm import Session
+from fastapi import HTTPException
+
+
+# 尝试导入情绪识别模块
+try:
+    from app.core.EmotionModel import EmotionModel
+    EMOTION_MODEL_AVAILABLE = True
+except ImportError:
+    logging.warning("情绪识别模型未正确加载，请检查模型文件和依赖")
+    EMOTION_MODEL_AVAILABLE = False
+
 
 # 导入IDE模块的额外处理程序
 try:
@@ -115,7 +130,7 @@ async def post_module(module_name: str, request: Request):
     else:
         return {"module": module_name, "status": "模块未找到或未注册"}
 
-# IDE模块特定的API端点（如果可用）
+# 保留 `feature/add-ide-intergration` 分支添加的 IDE 模块特定 API 端点
 if IDE_MODULE_AVAILABLE:
     @api_router.post("/module/ide/ai/chat")
     async def ide_ai_chat(request: Request):
@@ -211,3 +226,53 @@ if IDE_MODULE_AVAILABLE:
         IDE模块列出容器端点（别名）
         """
         return await list_containers()
+
+# 保留 `main` 分支添加的用户知识和情绪分析 API 端点
+@api_router.post("/users/{user_id}/knowledge")
+async def learn_knowledge(user_id: str, request: Request):
+    data = await request.json()
+    knowledge_id = data["knowledge_id"]
+    db: Session = SessionLocal()
+    try:
+        exists = db.query(UserKnowledge).filter_by(user_id=user_id, knowledge_id=knowledge_id).first()
+        if not exists:
+            record = UserKnowledge(user_id=user_id, knowledge_id=knowledge_id)
+            db.add(record)
+            db.commit()
+        return {"status": "ok"}
+    finally:
+        db.close()
+
+@api_router.get("/users/{user_id}/allowed-tags")
+async def get_allowed_tags(user_id: str):
+    db: Session = SessionLocal()
+    try:
+        learned = db.query(UserKnowledge).filter_by(user_id=user_id).all()
+        # 如果没有学习记录，自动添加 html_base
+        if not learned:
+            record = UserKnowledge(user_id=user_id, knowledge_id="html_base")
+            db.add(record)
+            db.commit()
+            learned = [record]
+        tags = set()
+        for rec in learned:
+            tags.update(knowledge_map.get(rec.knowledge_id, []))
+        return {"allowed_tags": list(tags)}
+    finally:
+        db.close()
+
+@api_router.post("/emotion")
+async def emotion(request: Request):
+    """
+    情绪分析API端点
+    """
+    if not EMOTION_MODEL_AVAILABLE:
+        return {
+            "emotion": "未知",
+            "state": "error",
+            "message": "情绪识别模型不可用，请检查模型文件和依赖"
+        }
+
+    response = await request.json()
+    text = response["text"]
+    return await EmotionModel(text)

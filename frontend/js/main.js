@@ -3,6 +3,8 @@
  * 包含所有页面通用的功能
  */
 
+import { ApiClient } from './api.js';
+
 // 模块集成API
 const ModuleAPI = {
     /**
@@ -127,3 +129,35 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('检查API可用性时出错:', error);
         });
 });
+
+// === docs_module 知识点集成 ===
+window.initdocs_moduleModule = function(container, data) {
+    if (!data || !data.data || !data.data.catalog) {
+        container.innerHTML = '<p>未获取到知识点目录数据</p>';
+        return;
+    }
+    const catalog = data.data.catalog;
+    // 创建目录和详情区
+    container.innerHTML = '<div id="knowledge-catalog"></div><div id="knowledge-detail"></div>';
+    renderCatalog(catalog);
+    function renderCatalog(catalog) {
+        const catalogDiv = document.getElementById('knowledge-catalog');
+        catalogDiv.innerHTML = '';
+        catalog.forEach(item => {
+            const node = document.createElement('div');
+            node.textContent = item.title || item.name || item.id;
+            node.className = 'catalog-item';
+            node.style.cursor = 'pointer';
+            node.onclick = () => renderKnowledgeDetail(item);
+            catalogDiv.appendChild(node);
+        });
+    }
+    function renderKnowledgeDetail(item) {
+        const detailDiv = document.getElementById('knowledge-detail');
+        detailDiv.innerHTML = `
+            <h2>${item.title || item.name || item.id}</h2>
+            <p>${item.description || ''}</p>
+            <pre>${item.code || ''}</pre>
+        `;
+    }
+};

@@ -32,6 +32,12 @@ from app.modules.module_loader import (
     create_example_modules
 )
 
+from app.core.config import engine, Base
+from app.core import models
+
+# 启动时自动建表
+Base.metadata.create_all(bind=engine)
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

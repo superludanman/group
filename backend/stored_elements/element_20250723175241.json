@@ -1,0 +1,13 @@
+{
+  "selector": "/html/body/div[1]/h5",
+  "outerHTML": "<h5>这是一个五级标题</h5>",
+  "bbox": {
+    "x": 231.20834350585938,
+    "y": 380.19793701171875,
+    "width": 106.25,
+    "height": 19.33333396911621
+  },
+  "tagName": "h5",
+  "classList": [],
+  "pageURL": "http://localhost:8080/pages/index01.html"
+}

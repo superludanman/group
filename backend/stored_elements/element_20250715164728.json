@@ -1,0 +1,15 @@
+{
+  "selector": "/*[@id=\"app\"]/div[1]/div/main/div[3]/div[1]/div[2]/p",
+  "outerHTML": "<p class=\"item-description\">学习Vue 3的核心概念和基础知识。</p>",
+  "bbox": {
+    "x": 322,
+    "y": 261.3333435058594,
+    "width": 232,
+    "height": 48
+  },
+  "tagName": "p",
+  "classList": [
+    "item-description"
+  ],
+  "pageURL": "http://localhost:8080/pages/index01.html"
+}
