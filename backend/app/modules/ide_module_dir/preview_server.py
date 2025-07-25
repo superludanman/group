@@ -21,14 +21,15 @@ logger = logging.getLogger(__name__)
 class PreviewServer:
     """本地预览服务器类"""
     
-    def __init__(self, port: int = 8081):
+    def __init__(self, port: int = None):
         """
         初始化预览服务器
         
         Args:
-            port: 服务器端口
+            port: 服务器端口，默认从环境变量PREVIEW_PORT获取，否则使用8081
         """
-        self.port = port
+        import os
+        self.port = port or int(os.environ.get("PREVIEW_PORT", "8081"))
         self.server_thread: Optional[threading.Thread] = None
         self.httpd: Optional[socketserver.TCPServer] = None
         self.is_running = False

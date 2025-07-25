@@ -61,16 +61,16 @@
    cd backend
    python run.py
    ```
-   后端服务器将在http://localhost:8000上可用
+   后端服务器将在http://localhost:8002上可用（默认端口，可通过.env文件配置）
 
 2. 打开前端：
    - 直接在浏览器中打开`frontend/index.html`文件
    - 或者使用简单的HTTP服务器：
      ```
      cd frontend
-     python -m http.server 3000
+     python -m http.server 9000
      ```
-     然后访问http://localhost:3000
+     然后访问http://localhost:9000（默认端口，可通过.env文件配置）
 
 ## 前后端分离架构
 
@@ -80,7 +80,7 @@
    - 使用FastAPI框架
    - 提供RESTful API
    - 包含模块系统，允许团队成员添加新功能
-   - 在端口8000上运行
+   - 在端口8002上运行（默认，可通过.env文件配置）
 
 2. **前端（Frontend）**：
    - 纯HTML、CSS和JavaScript

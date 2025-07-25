@@ -23,9 +23,17 @@ logger = logging.getLogger("run")
 
 def load_env():
     """手动加载环境变量文件"""
-    env_path = Path(__file__).parent / '.env'
-    logger.info(f"环境变量文件路径: {env_path}")
-    logger.info(f"环境变量文件是否存在: {env_path.exists()}")
+    # 优先加载根目录的.env文件
+    root_env_path = Path(__file__).parent.parent / '.env'
+    backend_env_path = Path(__file__).parent / '.env'
+    
+    logger.info(f"根目录环境变量文件路径: {root_env_path}")
+    logger.info(f"根目录环境变量文件是否存在: {root_env_path.exists()}")
+    logger.info(f"后端目录环境变量文件路径: {backend_env_path}")
+    logger.info(f"后端目录环境变量文件是否存在: {backend_env_path.exists()}")
+    
+    # 优先加载根目录的.env文件
+    env_path = root_env_path if root_env_path.exists() else backend_env_path
     
     if env_path.exists():
         with open(env_path, 'r') as f:
@@ -67,8 +75,8 @@ def main():
         logger.error("错误：未找到所需的包。请先运行'pip install -r requirements.txt'。")
         return False
     
-    # 启动应用程序
-    port = 8002  # 使用不同的端口
+    # 获取端口配置，默认为8002
+    port = int(os.environ.get("BACKEND_PORT", "8002"))
     host = "0.0.0.0"
     
     logger.info(f"启动服务器，地址为http://localhost:{port}")

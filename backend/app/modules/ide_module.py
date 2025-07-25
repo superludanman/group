@@ -155,7 +155,7 @@ async def update_student_model(request: Request):
         
         # 更新学生模型
         student_model_service.update_from_behavior(
-            session_id=session_id,
+            student_id=session_id,
             behavior_data=behavior_data
         )
         

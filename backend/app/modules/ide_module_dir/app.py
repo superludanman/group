@@ -286,7 +286,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 if __name__ == "__main__":
     # 获取配置
     host = os.environ.get("HOST", "0.0.0.0")
-    port = int(os.environ.get("PORT", "8080"))
+    port = int(os.environ.get("IDE_MODULE_PORT", "8080"))
     reload = os.environ.get("RELOAD", "False").lower() in ("true", "1", "t")
     
     # 启动服务器

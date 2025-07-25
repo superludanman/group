@@ -5,6 +5,7 @@ API路由模块
 
 from fastapi import APIRouter, Request
 import logging
+import os
 
 # 导入模块处理程序
 from app.modules.module_loader import (
@@ -43,6 +44,34 @@ async def health_check():
     健康检查端点，用于验证API是否正常运行
     """
     return {"status": "ok"}
+
+@api_router.get("/env")
+async def get_env_vars():
+    """
+    获取环境变量配置
+    """
+    env_vars = {}
+    # 只返回特定的环境变量，避免暴露敏感信息
+    allowed_vars = [
+        "BACKEND_PORT",
+        "IDE_MODULE_PORT", 
+        "FRONTEND_PORT",
+        "PREVIEW_PORT"
+    ]
+    
+    for var in allowed_vars:
+        value = os.environ.get(var)
+        if value is not None:
+            # 对于端口变量，转换为整数
+            if var.endswith("_PORT"):
+                try:
+                    env_vars[var] = int(value)
+                except ValueError:
+                    env_vars[var] = value
+            else:
+                env_vars[var] = value
+    
+    return env_vars
 
 # 模块API端点
 @api_router.get("/module/{module_name}")
