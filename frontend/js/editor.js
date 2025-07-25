@@ -7,47 +7,11 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log(savedSessionId ? `从本地存储中恢复会话ID: ${savedSessionId}` : '未找到本地存储的会话ID');
     
     // 默认代码内容
-    const defaultHTML = `<!DOCTYPE html>
-<html>
-<head>
-    <title>示例页面</title>
-</head>
-<body>
-    <h1>欢迎使用代码编辑器</h1>
-    <p>在这里编写你的HTML代码</p>
-    <button id="demo-button">点击我</button>
+    const defaultHTML = `<!DOCTYPE html>\n<html>\n<head>\n    <title>示例页面</title>\n</head>\n<body>\n    <h1>欢迎使用代码编辑器</h1>\n    <p>在这里编写你的HTML代码</p>\n    <button id="demo-button">点击我</button>\n    \n    <script src="script.js"></script>\n</body>\n</html>`;
     
-    <script src="script.js"></script>
-</body>
-</html>`;
+    const defaultCSS = `body {\n    font-family: Arial, sans-serif;\n    max-width: 800px;\n    margin: 0 auto;\n    padding: 20px;\n}\n\nh1 {\n    color: #10a37f;\n}\n\nbutton {\n    background-color: #10a37f;\n    color: white;\n    border: none;\n    padding: 10px 20px;\n    border-radius: 4px;\n    cursor: pointer;\n}\n\nbutton:hover {\n    background-color: #0e906f;\n}`;
     
-    const defaultCSS = `body {
-    font-family: Arial, sans-serif;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-h1 {
-    color: #10a37f;
-}
-
-button {
-    background-color: #10a37f;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #0e906f;
-}`;
-    
-    const defaultJS = `document.getElementById('demo-button').addEventListener('click', function() {
-    alert('按钮被点击了！');
-});`;
+    const defaultJS = `document.getElementById('demo-button').addEventListener('click', function() {\n    alert('按钮被点击了！');\n});`;
     
     // 编辑器配置和状态
 window.editorState = {
@@ -87,33 +51,7 @@ window.editorState = {
 
         // 添加DOM类型定义
         jsDefaults.addExtraLib(
-        `declare var document: {
-            createElement(tagName: string): HTMLElement;
-            querySelector(selectors: string): HTMLElement;
-            querySelectorAll(selectors: string): HTMLElement[];
-            getElementById(elementId: string): HTMLElement;
-            body: HTMLElement;
-        };
-
-        interface HTMLElement {
-            appendChild(node: HTMLElement): HTMLElement;
-            innerHTML: string;
-            style: any;
-            onclick: Function;
-            value: string;
-            addEventListener(event: string, listener: Function): void;
-        };
-
-        declare var console: {
-            log(...args: any[]): void;
-            error(...args: any[]): void;
-            warn(...args: any[]): void;
-        };
-
-        declare var window: {
-            alert(message: string): void;
-            addEventListener(event: string, listener: Function): void;
-        };
+        `declare var document: {\n            createElement(tagName: string): HTMLElement;\n            querySelector(selectors: string): HTMLElement;\n            querySelectorAll(selectors: string): HTMLElement[];\n            getElementById(elementId: string): HTMLElement;\n            body: HTMLElement;\n        };\n\n        interface HTMLElement {\n            appendChild(node: HTMLElement): HTMLElement;\n            innerHTML: string;\n            style: any;\n            onclick: Function;\n            value: string;\n            addEventListener(event: string, listener: Function): void;\n        };\n\n        declare var console: {\n            log(...args: any[]): void;\n            error(...args: any[]): void;\n            warn(...args: any[]): void;\n        };\n\n        declare var window: {\n            alert(message: string): void;\n            addEventListener(event: string, listener: Function): void;\n        };
         `, 'ts:dom.d.ts');
         
         // 配置编辑器主题
@@ -234,11 +172,23 @@ window.editorState = {
         editor.onDidChangeModelContent(function(e) {
             // 保存当前编辑器内容到状态
             editorState.html = editor.getValue();
+            
+            // 添加防抖，避免频繁请求
+            clearTimeout(window.staticCheckTimer);
+            window.staticCheckTimer = setTimeout(function() {
+                performStaticCheck();
+            }, 1000); // 1秒后执行静态检查
         });
         
         editorCSS.onDidChangeModelContent(function(e) {
             // 保存当前编辑器内容到状态
             editorState.css = editorCSS.getValue();
+            
+            // 添加防抖，避免频繁请求
+            clearTimeout(window.staticCheckTimer);
+            window.staticCheckTimer = setTimeout(function() {
+                performStaticCheck();
+            }, 1000); // 1秒后执行静态检查
         });
         
         editorJS.onDidChangeModelContent(function(e) {
@@ -718,128 +668,25 @@ window.editorState = {
     // 执行静态检查
     function performStaticCheck() {
         try {
-            // 先进行前端静态检查
-            const frontendErrors = [];
-            const frontendWarnings = [];
-            
-            // HTML检查例子
-            if (editorState.html.includes('</div>') && !editorState.html.includes('<div')) {
-                frontendErrors.push({
-                    line: editorState.html.split('\n').findIndex(line => line.includes('</div>')) + 1,
-                    column: editorState.html.split('\n').find(line => line.includes('</div>')).indexOf('</div>') + 1,
-                    message: 'HTML错误: 发现关闭标签</div>但没有对应的打开标签'
-                });
-            }
-            
-            // CSS检查例子
-            if (editorState.css.includes('{') && !editorState.css.includes('}')) {
-                frontendWarnings.push({
-                    line: editorState.css.split('\n').findIndex(line => line.includes('{')) + 1,
-                    column: editorState.css.split('\n').find(line => line.includes('{')).indexOf('{') + 1,
-                    message: 'CSS警告: 发现没有关闭的大括号'
-                });
-            }
-            
-            // JavaScript检查增强
-            if (editorState.activeTab === 'js') {
-                const jsCode = editorState.js;
-                
-                // 检查括号匹配
-                if ((jsCode.match(/\(/g) || []).length !== (jsCode.match(/\)/g) || []).length) {
-                    frontendErrors.push({
-                        line: 1,
-                        column: 1,
-                        message: 'JavaScript错误: 括号不匹配'
-                    });
-                }
-                
-                // 检查花括号匹配
-                if ((jsCode.match(/\{/g) || []).length !== (jsCode.match(/\}/g) || []).length) {
-                    frontendErrors.push({
-                        line: 1,
-                        column: 1,
-                        message: 'JavaScript错误: 花括号不匹配'
-                    });
-                }
-                
-                // 检查方括号匹配
-                if ((jsCode.match(/\[/g) || []).length !== (jsCode.match(/\]/g) || []).length) {
-                    frontendErrors.push({
-                        line: 1,
-                        column: 1,
-                        message: 'JavaScript错误: 方括号不匹配'
-                    });
-                }
-                
-                // 检查常见的语法错误模式
-                if (jsCode.includes('var ') && jsCode.includes('let ')) {
-                    frontendWarnings.push({
-                        line: jsCode.split('\n').findIndex(line => line.includes('var ')) + 1,
-                        column: 1,
-                        message: 'JavaScript警告: 混合使用var和let可能引起变量作用域混乱'
-                    });
-                }
-                
-                // 检查未定义变量调用
-                const variablePattern = /\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g;
-                const calledVariables = Array.from(jsCode.matchAll(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g), m => m[1]);
-                const definedVariables = Array.from(jsCode.matchAll(variablePattern), m => m[1]);
-                
-                // 排除内置函数
-                const builtInFunctions = ['console', 'alert', 'document', 'window', 'parseInt', 'parseFloat', 'setTimeout', 'setInterval'];
-                
-                calledVariables.forEach(variable => {
-                    if (!definedVariables.includes(variable) && !builtInFunctions.includes(variable)) {
-                        frontendWarnings.push({
-                            line: jsCode.split('\n').findIndex(line => line.includes(variable + '(')) + 1,
-                            column: jsCode.split('\n').find(line => line.includes(variable + '(')).indexOf(variable),
-                            message: `JavaScript警告: 可能调用了未定义的函数 '${variable}'`
-                        });
-                    }
-                });
-                
-                // 检查没有完成的语句
-                if (jsCode.trim().endsWith(';') && jsCode.trim().length > 1) {
-                    frontendWarnings.push({
-                        line: jsCode.split('\n').length,
-                        column: jsCode.split('\n').pop().length,
-                        message: 'JavaScript警告: 可能存在未完成的代码语句'
-                    });
-                }
-            }
-            
-            // 显示前端检查结果
-            showStaticCheckResults(frontendErrors, frontendWarnings);
-            
-            // 尝试调用后端静态检查 API
             const codeData = {
                 html: editorState.html,
                 css: editorState.css,
                 js: editorState.js,
                 session_id: editorState.sessionId
             };
-            
-            // 确保我们始终使用同一个会话ID，以确保后端只创建一个容器
+
             if (!editorState.sessionId) {
-                // 如果没有会话ID，创建一个新的
                 editorState.sessionId = generateUUID();
-                console.log(`静态检查: 创建新的会话ID: ${editorState.sessionId}`);
-            } else {
-                console.log(`静态检查: 使用现有会话ID: ${editorState.sessionId}`);
             }
-            
-            // 确保使用最新的会话ID
             codeData.session_id = editorState.sessionId;
-            
-            // 调用后端API
+
             fetch(`${editorState.backendUrl}/static-check`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(codeData),
-                // 设置超时，快速失败如果后端不可达
-                timeout: 1000
+                timeout: 5000
             })
             .then(response => {
                 if (!response.ok) {
@@ -848,147 +695,131 @@ window.editorState = {
                 return response.json();
             })
             .then(data => {
-                // 处理静态检查结果
-                if (data.status === 'success') {
-                    // 合并前端和后端的错误和警告
-                    const combinedErrors = [...frontendErrors, ...(data.errors || [])];
-                    const combinedWarnings = [...frontendWarnings, ...(data.warnings || [])];
-                    showStaticCheckResults(combinedErrors, combinedWarnings);
+                if (data.status === 'success' && data.details) {
+                    showStaticCheckResults(data.details);
                 }
             })
             .catch(error => {
                 console.error('静态检查出错:', error);
-                // 当后端静态检查失败时，保留前端检查结果
-                // 静态检查失败时不显示错误通知，以免干扰用户
             });
         } catch (error) {
             console.error('静态检查错误:', error);
         }
     }
-    
+
     // 显示静态检查结果
-    function showStaticCheckResults(errors, warnings) {
-        // 先清除所有现有的错误标记
+    function showStaticCheckResults(results) {
+        // 清除所有现有的错误标记
         if (window.currentDecorations) {
-            editor.deltaDecorations(window.currentDecorations, []);
+            editor.deltaDecorations(window.currentDecorations.html || [], []);
+            editorCSS.deltaDecorations(window.currentDecorations.css || [], []);
+            editorJS.deltaDecorations(window.currentDecorations.js || [], []);
         }
         
-        // 准备新的装饰
-        const decorations = [];
-        const model = editor.getModel();
-        
-        // 如果没有错误或警告，则只清除装饰
-        if (errors.length === 0 && warnings.length === 0) {
-            window.currentDecorations = [];
-            return;
-        }
-        
-        // 创建VSCode风格的问题面板
+        window.currentDecorations = { html: [], css: [], js: [] };
+
         const problemsDiv = document.getElementById('problems-panel') || createProblemsPanel();
         problemsDiv.innerHTML = ''; // 清空现有内容
-        
-        // 添加错误标题
-        if (errors.length > 0) {
-            const errorHeader = document.createElement('div');
-            errorHeader.className = 'problem-category';
-            errorHeader.innerHTML = `<span class="problem-icon error">⚠️</span> 错误 (${errors.length})`;
-            problemsDiv.appendChild(errorHeader);
+
+        let totalErrors = 0;
+        let totalWarnings = 0;
+
+        const processResults = (lang, editorInstance, resultsData) => {
+            if (!resultsData) return;
+
+            const errors = resultsData.errors || [];
+            const warnings = resultsData.warnings || [];
+            totalErrors += errors.length;
+            totalWarnings += warnings.length;
             
-            // 处理错误
-            errors.forEach((error, index) => {
-                if (error.line && error.column) {
-                    // 创建错误装饰
-                    const lineLength = model.getLineLength(error.line) || 1;
-                    const endColumn = Math.min(error.column + 10, lineLength);
-                    
-                    decorations.push({
-                        range: new monaco.Range(error.line, error.column, error.line, endColumn),
-                        options: {
-                            inlineClassName: 'monaco-error-squiggle',
-                            hoverMessage: { value: error.message },
-                            overviewRuler: {
-                                color: '#FF0000',
-                                position: monaco.editor.OverviewRulerLane.Right
-                            },
-                            minimap: {
-                                color: '#FF0000',
-                                position: monaco.editor.MinimapPosition.Inline
+            const decorations = [];
+            const model = editorInstance.getModel();
+
+            if (errors.length > 0) {
+                const errorHeader = document.createElement('div');
+                errorHeader.className = 'problem-category';
+                errorHeader.innerHTML = `<span class="problem-icon error">⚠️</span> ${lang.toUpperCase()} 错误 (${errors.length})`;
+                problemsDiv.appendChild(errorHeader);
+
+                errors.forEach(error => {
+                    if (error.line && error.column) {
+                        const lineLength = model.getLineLength(error.line) || 1;
+                        const endColumn = Math.min(error.column + 10, lineLength);
+                        decorations.push({
+                            range: new monaco.Range(error.line, error.column, error.line, endColumn),
+                            options: {
+                                inlineClassName: 'monaco-error-squiggle',
+                                hoverMessage: { value: error.message },
+                                overviewRuler: { color: '#FF0000', position: monaco.editor.OverviewRulerLane.Right },
+                                minimap: { color: '#FF0000', position: monaco.editor.MinimapPosition.Inline }
                             }
-                        }
-                    });
-                    
-                    // 添加到问题面板
-                    const problemItem = document.createElement('div');
-                    problemItem.className = 'problem-item';
-                    problemItem.innerHTML = `
-                        <span class="problem-icon error">⛔</span>
-                        <span class="problem-message">${error.message}</span>
-                        <span class="problem-location">[${error.line}:${error.column}]</span>
-                    `;
-                    problemItem.addEventListener('click', () => {
-                        editor.revealPositionInCenter({ lineNumber: error.line, column: error.column });
-                        editor.setPosition({ lineNumber: error.line, column: error.column });
-                        editor.focus();
-                    });
-                    problemsDiv.appendChild(problemItem);
-                }
-            });
-        }
-        
-        // 添加警告标题
-        if (warnings.length > 0) {
-            const warningHeader = document.createElement('div');
-            warningHeader.className = 'problem-category';
-            warningHeader.innerHTML = `<span class="problem-icon warning">⚠</span> 警告 (${warnings.length})`;
-            problemsDiv.appendChild(warningHeader);
+                        });
+
+                        const problemItem = document.createElement('div');
+                        problemItem.className = 'problem-item';
+                        problemItem.innerHTML = `
+                            <span class="problem-icon error">⛔</span>
+                            <span class="problem-message">${error.message}</span>
+                            <span class="problem-location">[${error.line}:${error.column}]</span>
+                        `;
+                        problemItem.addEventListener('click', () => {
+                            editorInstance.revealPositionInCenter({ lineNumber: error.line, column: error.column });
+                            editorInstance.setPosition({ lineNumber: error.line, column: error.column });
+                            editorInstance.focus();
+                        });
+                        problemsDiv.appendChild(problemItem);
+                    }
+                });
+            }
+
+            if (warnings.length > 0) {
+                const warningHeader = document.createElement('div');
+                warningHeader.className = 'problem-category';
+                warningHeader.innerHTML = `<span class="problem-icon warning">⚠</span> ${lang.toUpperCase()} 警告 (${warnings.length})`;
+                problemsDiv.appendChild(warningHeader);
+
+                warnings.forEach(warning => {
+                    if (warning.line && warning.column) {
+                        const lineLength = model.getLineLength(warning.line) || 1;
+                        const endColumn = Math.min(warning.column + 10, lineLength);
+                        decorations.push({
+                            range: new monaco.Range(warning.line, warning.column, warning.line, endColumn),
+                            options: {
+                                inlineClassName: 'monaco-warning-squiggle',
+                                hoverMessage: { value: warning.message },
+                                overviewRuler: { color: '#FFA500', position: monaco.editor.OverviewRulerLane.Right },
+                                minimap: { color: '#FFA500', position: monaco.editor.MinimapPosition.Inline }
+                            }
+                        });
+
+                        const problemItem = document.createElement('div');
+                        problemItem.className = 'problem-item';
+                        problemItem.innerHTML = `
+                            <span class="problem-icon warning">⚠</span>
+                            <span class="problem-message">${warning.message}</span>
+                            <span class="problem-location">[${warning.line}:${warning.column}]</span>
+                        `;
+                        problemItem.addEventListener('click', () => {
+                            editorInstance.revealPositionInCenter({ lineNumber: warning.line, column: warning.column });
+                            editorInstance.setPosition({ lineNumber: warning.line, column: warning.column });
+                            editorInstance.focus();
+                        });
+                        problemsDiv.appendChild(problemItem);
+                    }
+                });
+            }
             
-            // 处理警告
-            warnings.forEach((warning, index) => {
-                if (warning.line && warning.column) {
-                    // 创建警告装饰
-                    const lineLength = model.getLineLength(warning.line) || 1;
-                    const endColumn = Math.min(warning.column + 10, lineLength);
-                    
-                    decorations.push({
-                        range: new monaco.Range(warning.line, warning.column, warning.line, endColumn),
-                        options: {
-                            inlineClassName: 'monaco-warning-squiggle',
-                            hoverMessage: { value: warning.message },
-                            overviewRuler: {
-                                color: '#FFA500',
-                                position: monaco.editor.OverviewRulerLane.Right
-                            },
-                            minimap: {
-                                color: '#FFA500',
-                                position: monaco.editor.MinimapPosition.Inline
-                            }
-                        }
-                    });
-                    
-                    // 添加到问题面板
-                    const problemItem = document.createElement('div');
-                    problemItem.className = 'problem-item';
-                    problemItem.innerHTML = `
-                        <span class="problem-icon warning">⚠</span>
-                        <span class="problem-message">${warning.message}</span>
-                        <span class="problem-location">[${warning.line}:${warning.column}]</span>
-                    `;
-                    problemItem.addEventListener('click', () => {
-                        editor.revealPositionInCenter({ lineNumber: warning.line, column: warning.column });
-                        editor.setPosition({ lineNumber: warning.line, column: warning.column });
-                        editor.focus();
-                    });
-                    problemsDiv.appendChild(problemItem);
-                }
-            });
-        }
-        
-        // 应用装饰
-        window.currentDecorations = editor.deltaDecorations(window.currentDecorations || [], decorations);
-        
-        // 显示问题面板
-        if (errors.length > 0 || warnings.length > 0) {
+            window.currentDecorations[lang] = editorInstance.deltaDecorations(window.currentDecorations[lang] || [], decorations);
+        };
+
+        processResults('html', editor, results.html);
+        processResults('css', editorCSS, results.css);
+        processResults('js', editorJS, results.js);
+
+        if (totalErrors > 0 || totalWarnings > 0) {
             problemsDiv.style.display = 'block';
+        } else {
+            problemsDiv.style.display = 'none';
         }
     }
     

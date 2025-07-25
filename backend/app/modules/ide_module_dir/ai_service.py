@@ -12,19 +12,60 @@ import time
 import asyncio
 import aiohttp
 from typing import Dict, List, Any, Optional, Union
-from dotenv import load_dotenv
+from pathlib import Path
+
 # 尝试相对导入（用于主应用），如果失败则使用绝对导入（用于Docker容器）
 try:
     from .prompt_generator import get_prompt_generator
 except ImportError:
     from prompt_generator import get_prompt_generator
 
+# 配置日志
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("AIService")
+logger.setLevel(logging.DEBUG)
+
+# 手动加载环境变量（覆盖系统环境变量）
+def load_env_file():
+    """手动加载环境变量文件"""
+    # 获取当前文件所在目录，然后向上四级到达项目根目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+    env_path = os.path.join(project_root_dir, '.env')
+    logger.debug(f"环境变量文件路径: {env_path}")
+    logger.debug(f"环境变量文件是否存在: {os.path.exists(env_path)}")
+    
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        # 覆盖系统环境变量
+                        os.environ[key] = value
+                        logger.debug(f"设置环境变量: {key}={value[:10]}..." if len(value) > 10 else f"设置环境变量: {key}={value}")
+    else:
+        logger.warning(f"未找到环境变量文件: {env_path}")
+
 # 加载环境变量
-load_dotenv()
+load_env_file()
+
+# 调试信息
+api_key = os.environ.get("OPENAI_API_KEY", "")
+api_base = os.environ.get("OPENAI_API_BASE", "")
+model = os.environ.get("OPENAI_MODEL", "")
+logger.debug(f"Loaded API config - Key: {'*' * min(20, len(api_key)) if api_key else 'None'}, Base: {api_base}, Model: {model}")
 
 # 配置日志
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("AIService")
+
+# 调试信息
+api_key = os.environ.get("OPENAI_API_KEY", "")
+api_base = os.environ.get("OPENAI_API_BASE", "")
+model = os.environ.get("OPENAI_MODEL", "")
+logger.info(f"Loaded API config - Key: {'*' * min(20, len(api_key)) if api_key else 'None'}, Base: {api_base}, Model: {model}")
 
 
 class AIService:
@@ -38,6 +79,11 @@ class AIService:
         self.model = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
         self.max_tokens = int(os.environ.get("OPENAI_MAX_TOKENS", "1024"))
         self.temperature = float(os.environ.get("OPENAI_TEMPERATURE", "0.7"))
+        
+        # 记录调试信息到日志
+        logger.debug(f"AIService初始化 - API密钥: {self.api_key[:10] if self.api_key else 'None'}")
+        logger.debug(f"AIService初始化 - API基础URL: {self.api_base}")
+        logger.debug(f"AIService初始化 - 模型: {self.model}")
         
         # 并发请求限制和重试配置
         self.max_retries = 3
@@ -97,6 +143,11 @@ class AIService:
             "Authorization": f"Bearer {self.api_key}"
         }
         
+        # 记录请求信息用于调试
+        logger.debug(f"API请求URL: {self.api_base}/chat/completions")
+        logger.debug(f"API请求头: {headers}")
+        logger.debug(f"API请求数据: {request_data}")
+        
         # 执行请求，带重试
         for attempt in range(self.max_retries):
             try:
@@ -112,6 +163,12 @@ class AIService:
                         error_text = await response.text()
                         logger.error(f"API请求失败 (尝试 {attempt+1}/{self.max_retries}): "
                                     f"状态码 {response.status}, 响应: {error_text}")
+                        
+                        # 特别记录401错误的详细信息
+                        if response.status == 401:
+                            logger.error(f"API密钥认证失败，请检查API密钥是否正确配置")
+                            logger.error(f"使用的API密钥前缀: {self.api_key[:10] if self.api_key else 'None'}")
+                            logger.error(f"使用的API基础URL: {self.api_base}")
                         
                         # 处理特定错误码
                         if response.status == 429:  # 速率限制
@@ -133,6 +190,9 @@ class AIService:
                             }
             except Exception as e:
                 logger.error(f"API请求发生异常 (尝试 {attempt+1}/{self.max_retries}): {str(e)}")
+                logger.error(f"异常类型: {type(e).__name__}")
+                if hasattr(e, '__dict__'):
+                    logger.error(f"异常详情: {e.__dict__}")
                 if attempt < self.max_retries - 1:
                     wait_time = self.retry_delay * (2 ** attempt)
                     logger.info(f"等待 {wait_time} 秒后重试")
@@ -363,5 +423,6 @@ def get_ai_service() -> AIService:
     """获取AI服务的单例实例"""
     global _instance
     if _instance is None:
+        logger.debug("创建AIService实例")
         _instance = AIService()
     return _instance

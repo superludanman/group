@@ -7,6 +7,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import uvicorn
+from pathlib import Path
+from dotenv import load_dotenv
+
+# 加载环境变量
+# 优先加载根目录的.env文件
+root_env_path = Path(__file__).parent.parent.parent / '.env'
+backend_env_path = Path(__file__).parent.parent / '.env'
+env_path = root_env_path if root_env_path.exists() else backend_env_path
+
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+    logging.info(f"已加载环境变量文件: {env_path}")
+    logging.info(f"OPENAI_API_KEY: {openai_key[:10] if (openai_key := __import__('os').environ.get('OPENAI_API_KEY')) else 'Not set'}")
+    logging.info(f"OPENAI_API_BASE: {__import__('os').environ.get('OPENAI_API_BASE', 'Not set')}")
+    logging.info(f"OPENAI_MODEL: {__import__('os').environ.get('OPENAI_MODEL', 'Not set')}")
 
 # 导入API路由
 from app.api.router import api_router
@@ -49,5 +64,9 @@ async def startup_event():
 
 # 主入口点
 if __name__ == "__main__":
+    import os
     logger.info("启动AI HTML学习平台后端")
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    # 从环境变量获取端口配置，如果没有设置则使用默认值8000
+    # 开发者注意：请在项目根目录的.env文件中配置端口，而非修改此处硬编码
+    port = int(os.environ.get("BACKEND_PORT", "8000"))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
