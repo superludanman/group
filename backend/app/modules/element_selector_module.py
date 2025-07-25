@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from fastapi import Request, APIRouter
+from fastapi import Request, APIRouter, Depends
 import logging
 import os
 import json
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # 导入模块加载器
 from app.modules.module_loader import register_module
 from app.core.knowledge_map import knowledge_map
-from app.core.config import SessionLocal
+from app.core.config import get_db
 from app.core.models import UserKnowledge
 from sqlalchemy.orm import Session
 
@@ -46,13 +46,12 @@ async def get_handler() -> Dict[str, Any]:
         }
 
 # POST 处理程序：接收并保存前端传来的元素信息
-async def post_handler(request: Request) -> Dict[str, Any]:
+async def post_handler(request: Request, db: Session = Depends(get_db)) -> Dict[str, Any]:
     try:
         data = await request.json()
         user_id = data.get("user_id")
         element_tag = data.get("element_tag")
         if user_id and element_tag:
-            db: Session = SessionLocal()
             try:
                 learned = db.query(UserKnowledge).filter_by(user_id=user_id).all()
                 allowed_tags = set()
@@ -64,8 +63,13 @@ async def post_handler(request: Request) -> Dict[str, Any]:
                         "status": "forbidden",
                         "message": f"你还未学过该标签: {element_tag}"
                     }
-            finally:
-                db.close()
+            except Exception as e:
+                db.rollback()
+                return {
+                    "module": "element_selector",
+                    "status": "error",
+                    "error": str(e)
+                }
         # 生成唯一ID
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         element_id = f"element_{timestamp}"

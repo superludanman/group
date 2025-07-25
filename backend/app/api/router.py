@@ -3,7 +3,7 @@ API路由模块
 包含所有API端点的路由定义
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 import logging
 import os
 
@@ -13,7 +13,7 @@ from app.modules.module_loader import (
     post_module_handler
 )
 from app.core.models import UserKnowledge
-from app.core.config import SessionLocal
+from app.core.config import get_db
 from app.core.knowledge_map import knowledge_map
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
@@ -229,10 +229,9 @@ if IDE_MODULE_AVAILABLE:
 
 # 保留 `main` 分支添加的用户知识和情绪分析 API 端点
 @api_router.post("/users/{user_id}/knowledge")
-async def learn_knowledge(user_id: str, request: Request):
+async def learn_knowledge(user_id: str, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     knowledge_id = data["knowledge_id"]
-    db: Session = SessionLocal()
     try:
         exists = db.query(UserKnowledge).filter_by(user_id=user_id, knowledge_id=knowledge_id).first()
         if not exists:
@@ -240,12 +239,12 @@ async def learn_knowledge(user_id: str, request: Request):
             db.add(record)
             db.commit()
         return {"status": "ok"}
-    finally:
-        db.close()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/users/{user_id}/allowed-tags")
-async def get_allowed_tags(user_id: str):
-    db: Session = SessionLocal()
+async def get_allowed_tags(user_id: str, db: Session = Depends(get_db)):
     try:
         learned = db.query(UserKnowledge).filter_by(user_id=user_id).all()
         # 如果没有学习记录，自动添加 html_base
@@ -258,8 +257,9 @@ async def get_allowed_tags(user_id: str):
         for rec in learned:
             tags.update(knowledge_map.get(rec.knowledge_id, []))
         return {"allowed_tags": list(tags)}
-    finally:
-        db.close()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.post("/emotion")
 async def emotion(request: Request):
