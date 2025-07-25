@@ -19,7 +19,7 @@ logging.set_verbosity_error()
 current_dir = Path(__file__).parent.absolute()
 
 # 设置模型路径 - 使用相对路径
-model_dir = current_dir / "best_model" / "bert-base-uncased"
+model_dir = current_dir / "best_model" / "distilbert-base-uncased-emotion"
 
 print(f"正在从 {model_dir} 加载模型...")
 
