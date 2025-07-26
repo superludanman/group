@@ -8,7 +8,7 @@ from fastapi import Request, Depends
 from sqlalchemy.orm import Session
 import logging
 from app.core.config import get_db
-from backend.app.core.models import Node, Edge, UserProgress
+from app.core.models import Node, Edge, UserProgress
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 from app.modules.module_loader import register_module
 
 # GET 请求处理器
-async def get_handler(db: Session = Depends(get_db)) -> Dict[str, Any]:
+async def get_handler(db: Session = Depends(get_db), user_id: str = "") -> Dict[str, Any]:
     """
     处理对模块API端点的GET请求。
     
@@ -26,10 +26,13 @@ async def get_handler(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     try:
         logger.info("group_loader 模块 GET 请求开始")
-        graph_data = get_graph_data(db)  # 调用自定义函数从数据库读取数据
-        learned_nodes = get_learned_nodes(db)  # 获取已学习节点
+        # 获取数据库会话
+        nodes = db.query(Node).all() # 获取所有知识点
+        edges = db.query(Edge).all() # 获取所有依赖关系
+        
+        learned_nodes = db.query(UserProgress.node_id).filter(UserProgress.user_id == user_id).all()
 
-        if graph_data is None or learned_nodes is None:
+        if nodes is None or edges is None or learned_nodes is None:
             return {
                 "module": "group_loader",
                 "status": "error",
@@ -40,8 +43,8 @@ async def get_handler(db: Session = Depends(get_db)) -> Dict[str, Any]:
             "module": "group_loader",
             "status": "success",
             "data": {
-                "nodes": graph_data.get("nodes", []),
-                "edges": graph_data.get("edges", []),
+                "nodes": [{"data": {"id": node.id, "label": node.label}} for node in nodes],
+                "edges": [{"data": {"source": edge.source_node, "target": edge.target_node}} for edge in edges],
                 "learnedNodes": learned_nodes
             }
         }
@@ -52,25 +55,7 @@ async def get_handler(db: Session = Depends(get_db)) -> Dict[str, Any]:
             "status": "error",
             "error": str(e)
         }
-# 从数据库中获取知识图谱数据的函数
-def get_graph_data(db: Session) -> Dict[str, Any]:
-    """从数据库获取知识图谱数据"""
-    nodes = db.query(Node).all()
-    edges = db.query(Edge).all() 
     
-    # 构建图数据
-    graph_data = {
-        "nodes": [{"data": {"id": node.id, "label": node.label}} for node in nodes],
-        "edges": [{"data": {"source": edge.source_node, "target": edge.target_node}} for edge in edges]
-    }
-    return graph_data
-
-# 获取已学习节点的函数
-def get_learned_nodes(db: Session,user_id: str) -> list:
-    """根据用户ID查询该用户已学习的节点"""
-    learned_nodes = db.query(UserProgress.node_id).filter(UserProgress.user_id == user_id).all()
-    return [node.node_id for node in learned_nodes]
-
 async def post_handler(request: Request) -> Dict[str, Any]:
     """
     处理对模块API端点的POST请求。
