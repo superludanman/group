@@ -4,36 +4,20 @@
 此文件用于获取知识点和用户已学习知识点数据
 """
 from typing import Dict, Any
-from fastapi import Request
+from fastapi import Request, Depends
+from sqlalchemy.orm import Session
 import logging
-import json
-import os
+from app.core.config import get_db
+from backend.app.core.models import Node, Edge, UserProgress
 
 # 配置日志
 logger = logging.getLogger(__name__)
 
 # 导入模块加载器
-from .module_loader import register_module
-
-# 获取当前文件的目录：A/c/
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 构造指向 A/b/graph_data.json 的路径
-GRAPH_DATA_PATH = os.path.join(BASE_DIR, "..", "data", "graph_data.json")
-
-# 可选：转换成绝对路径（更安全）
-GRAPH_DATA_PATH = os.path.abspath(GRAPH_DATA_PATH)
-""" LEARNED_NODES_PATH = "data/learned_nodes.json" """
-
-# 读取 JSON 文件
-def read_json_file(filepath: str) -> Any:
-    if os.path.exists(filepath):
-        with open(filepath, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return None
+from app.modules.module_loader import register_module
 
 # GET 请求处理器
-async def get_handler() -> Dict[str, Any]:
+async def get_handler(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     处理对模块API端点的GET请求。
     
@@ -42,35 +26,8 @@ async def get_handler() -> Dict[str, Any]:
     """
     try:
         logger.info("group_loader 模块 GET 请求开始")
-        graph_data = read_json_file(GRAPH_DATA_PATH)
-        """  learned_nodes = read_json_file(LEARNED_NODES_PATH) """
-        """ graph_data = {
-                        "nodes": [
-                            { "data": { "id": 'HTML', "label": 'HTML 基础' } },
-                            { "data": { "id": 'CSS', "label": 'CSS 样式' } },
-                            { "data": { "id": '1', "label": '1' } },
-                            { "data": { "id": '2', "label": '2' } },
-                            { "data": { "id": '3', "label": '3' } },
-                            { "data": { "id": 'JS', "label": 'JavaScript 入门' } },
-                            { "data": { "id": 'DOM', "label": 'DOM 操作' } },
-                            { "data": { "id": 'AJAX', "label": 'AJAX 请求' } },
-                            { "data": { "id": 'Async', "label": '异步编程' } },
-                            { "data": { "id": 'Functional', "label": '函数式编程' } },
-                        ],
-                        "edges": [
-                            { "data": { "source": 'HTML', "target": 'CSS' } },
-                            { "data": { "source": 'CSS', "target": 'JS' } },
-                            { "data": { "source": '1', "target": '2' } },
-                            { "data": { "source": '2', "target": '3' } },
-                            { "data": { "source": 'JS', "target": 'DOM' } },
-                            { "data": { "source": 'DOM', "target": 'AJAX' } },
-                            { "data": { "source": 'JS', "target": 'Async' } },
-                            { "data": { "source": 'JS', "target": 'Functional' } },
-                            { "data": { "source": 'JS', "target": 'AJAX' } },
-                            { "data": { "source": 'AJAX', "target": 'JS' } },
-                        ]
-                    } """
-        learned_nodes = ['html_base']
+        graph_data = get_graph_data(db)  # 调用自定义函数从数据库读取数据
+        learned_nodes = get_learned_nodes(db)  # 获取已学习节点
 
         if graph_data is None or learned_nodes is None:
             return {
@@ -95,6 +52,24 @@ async def get_handler() -> Dict[str, Any]:
             "status": "error",
             "error": str(e)
         }
+# 从数据库中获取知识图谱数据的函数
+def get_graph_data(db: Session) -> Dict[str, Any]:
+    """从数据库获取知识图谱数据"""
+    nodes = db.query(Node).all()
+    edges = db.query(Edge).all() 
+    
+    # 构建图数据
+    graph_data = {
+        "nodes": [{"data": {"id": node.id, "label": node.label}} for node in nodes],
+        "edges": [{"data": {"source": edge.source_node, "target": edge.target_node}} for edge in edges]
+    }
+    return graph_data
+
+# 获取已学习节点的函数
+def get_learned_nodes(db: Session,user_id: str) -> list:
+    """根据用户ID查询该用户已学习的节点"""
+    learned_nodes = db.query(UserProgress.node_id).filter(UserProgress.user_id == user_id).all()
+    return [node.node_id for node in learned_nodes]
 
 async def post_handler(request: Request) -> Dict[str, Any]:
     """
